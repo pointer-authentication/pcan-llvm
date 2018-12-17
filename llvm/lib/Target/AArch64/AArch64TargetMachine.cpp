@@ -41,6 +41,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include <memory>
 #include <string>
+#include "llvm/CAUTH/Cauth.h"
 
 using namespace llvm;
 
@@ -589,4 +590,8 @@ void AArch64PassConfig::addPreEmitPass() {
   if (TM->getOptLevel() != CodeGenOpt::None && EnableCollectLOH &&
       TM->getTargetTriple().isOSBinFormatMachO())
     addPass(createAArch64CollectLOHPass());
+  
+  if (CAUTH::useCAuth())
+    addPass(createCauthPass());
+
 }

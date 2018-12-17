@@ -60,8 +60,14 @@ add_llvm_target(AArch64CodeGen
   AArch64TargetTransformInfo.cpp
   AArch64SIMDInstrOpt.cpp
 
+  AArch64CAUTH/CauthPass.cpp
+
   DEPENDS
   intrinsics_gen
+  Cauth
+
+  LINK_LIBS
+  Cauth
 )
 
 add_subdirectory(AsmParser)
