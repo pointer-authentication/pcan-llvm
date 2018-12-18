@@ -67,5 +67,11 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   //DEBUG("function " << MF.getName() << "\n");
   errs()<< getPassName() << ", function " << MF.getName() << '\n';
+  for (auto &MBB : MF){
+    errs()<< getPassName() << ", function " << MF.getName() << ", Basic Block: " << MBB.getName() << '\n';
+    for (auto &I : MBB){
+      I.dump();
+    }
+  }
   return true;
 }
