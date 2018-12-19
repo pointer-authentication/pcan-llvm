@@ -49,7 +49,8 @@ namespace {
    bool instrumentBranches(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
 
  private:
-   
+   const AArch64Subtarget *STI = nullptr;
+   const AArch64InstrInfo *TII = nullptr;
  };
 } // end anonymous namespace
 
@@ -67,10 +68,57 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
   //DEBUG("function " << MF.getName() << "\n");
   errs()<< getPassName() << ", function " << MF.getName() << '\n';
+  STI = &MF.getSubtarget<AArch64Subtarget>();
+  TII = STI->getInstrInfo();
+  
   for (auto &MBB : MF){
-    errs()<< getPassName() << ", function " << MF.getName() << ", Basic Block: " << MBB.getName() << '\n';
-    for (auto &I : MBB){
-      I.dump();
+    errs()<< getPassName() << ", function " << MF.getName() << "\nBasic Block: " << MBB.getName() << '\n';
+    bool isPrologue = true;
+    auto src = 0;
+    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
+      errs()<<'\t';
+      MIi->dump();
+      if (MBB.getName()=="entry"){
+        const auto MIOpcode = MIi->getOpcode();
+        std::string type_str;
+        llvm::raw_string_ostream rso(type_str);
+        switch(MIOpcode) {
+          default:
+            break;
+          //case AArch64::ADRP:
+          case AArch64::LDRXui:{
+            auto op2 = MIi->getOperand(2);
+            
+            op2.print(rso);
+          if (rso.str()=="target-flags(aarch64-pageoff, aarch64-nc) @__stack_chk_guard"){
+            errs()<<"Operand 2: "<< rso.str() <<"\n";
+            const auto &DL = MIi->getDebugLoc();
+            src = MIi->getOperand(1).getReg();
+            auto modReg = AArch64::X24;
+            if (isPrologue){
+              BuildMI(MBB, ++MIi, DL, TII->get(AArch64::ADDXri), modReg).addReg(modReg).addImm(10).addImm(0);
+              BuildMI(MBB, MIi, DL, TII->get(AArch64::PACIA), src).addReg(modReg);
+              isPrologue = false;  
+            }
+          }
+          break;
+        }
+
+          case AArch64::ADRP:{
+            if (!isPrologue){
+              auto op1 = MIi->getOperand(1);
+              op1.print(rso);
+              if (rso.str()=="target-flags(aarch64-page) @__stack_chk_guard"){
+                errs()<<"Operand 1: "<< rso.str() <<"\n";
+                const auto &DL = MIi->getDebugLoc();
+                auto modReg = AArch64::X24;
+                BuildMI(MBB, MIi, DL, TII->get(AArch64::AUTIA), src).addReg(modReg);
+                BuildMI(MBB, MIi, DL, TII->get(AArch64::BL)).addImm(5);
+              }
+            }
+          }
+        }
+      }
     }
   }
   return true;
