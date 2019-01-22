@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //
 // Author: Zaheer Gauhar <zaheer.gauhar@pm.me>
-// *******Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/**********
+// ***Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/***
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
@@ -13,11 +13,6 @@
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
-
-//#include "../ARM/ARM.h"
-//#include "../ARM/ARMSubtarget.h"
-//#include "../ARM/ARMRegisterInfo.h"
-
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
@@ -56,6 +51,7 @@ namespace {
  private:
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
+   const AArch64RegisterInfo *TRI = nullptr;
  };
 } // end anonymous namespace
 
@@ -70,63 +66,62 @@ bool CauthPass::doInitialization(Module &M) {
 }
 
 bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
-  DEBUG(dbgs() << getPassName() << ", function " << MF.getName() << '\n');
-  //DEBUG("function " << MF.getName() << "\n");
-  errs()<< getPassName() << ", function " << MF.getName() << '\n';
+  bool found = false;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
-  
-  for (auto &MBB : MF){
-    errs()<< getPassName() << ", function " << MF.getName() << "\nBasic Block: " << MBB.getName() << '\n';
-    bool isPrologue = true;
-    auto src = 0;
-    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      //errs()<<'\t';
-      MIi->dump();
-      if (MBB.getName()=="entry"){
-        const auto MIOpcode = MIi->getOpcode();
-        std::string type_str;
-        llvm::raw_string_ostream rso(type_str);
-        auto dst1 = AArch64::X24;
-        auto dst2 = AArch64::X25;
-        switch(MIOpcode) {
-          default:
-            break;
-          //case AArch64::ADRP:
-          case AArch64::LDRXui:{
-            auto op2 = MIi->getOperand(2);
-            op2.print(rso);
-            if (rso.str()=="target-flags(aarch64-pageoff, aarch64-nc) @__stack_chk_guard"){
-              errs()<<"Operand 2: "<< rso.str() <<"\n";
-              const auto &DL = MIi->getDebugLoc();
-              src = MIi->getOperand(1).getReg();
-              auto dst = AArch64::X24;
-              if (isPrologue){
-                BuildMI(MBB, ++MIi, DL, TII->get(AArch64::ADDXri), dst1).addReg(dst).addImm(MF.getFunctionNumber()).addImm(0);
-                BuildMI(MBB, MIi, DL, TII->get(AArch64::PACGA), dst1).addReg(src).addReg(AArch64::SP);
-                isPrologue = false;  
-              }
-            }
-            break;
-          }
+  //TM = &MF.getTarget();;
+  TRI = STI->getRegisterInfo();
 
-          case AArch64::ADRP:{
-            if (!isPrologue){
-              auto op1 = MIi->getOperand(1);
-              op1.print(rso);
-              if (rso.str()=="target-flags(aarch64-page) @__stack_chk_guard"){
-                errs()<<"Operand 1: "<< rso.str() <<"\n";
-                const auto &DL = MIi->getDebugLoc();               
-                BuildMI(MBB, MIi, DL, TII->get(AArch64::PACGA), dst2).addReg(src).addReg(AArch64::SP);
-                BuildMI(MBB, MIi, DL, TII->get(AArch64::SUBSXrs), AArch64::XZR).addReg(dst2).addReg(dst1).addImm(0);
-                //BuildMI(MBB, MIi, DL, TII->get(AArch64::BEQ)).addImm(5);
-              }
-            }
-            break;
+  for (auto &MBB : MF) {
+    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
+      errs()<<MF.getName() << MF.getName() << "->" << MBB.getName() << "->";
+      MIi->dump();
+      const auto MIOpcode = MIi->getOpcode();
+      switch(MIOpcode) {
+        default:
+          break;
+        case AArch64::CAUTH_PACGA:
+          break;
+        case AArch64::CAUTH_PACDA:
+        case AArch64::CAUTH_AUTDA:
+          const auto &DL = MIi->getDebugLoc();
+          const unsigned dst = MIi->getOperand(0).getReg();
+          const unsigned src = MIi->getOperand(1).getReg();
+          unsigned mod = MIi->getOperand(2).getReg();
+
+          // Save the mod register if it is marked as killable!
+          if (MIi->getOperand(2).isKill()) {
+            unsigned oldMod = mod;
+            mod = AArch64::X24;
+            BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
           }
-        }
+          // Move the pointer to destination register
+          BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+
+          // Insert appropriate PA instruction
+          /*
+          if (MIOpcode == AArch64::CAUTH_PACDA) {
+            log->inc(TAG ".pacia", true) << "converting CAUTH_PACDA\n";
+            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
+            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrCreate);
+          } else if (MIOpcode == AArch64::CAUTH_AUTDA) {
+            //log->inc(TAG ".pacda", true) << "converting CAUTH_AUTDA\n";
+            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
+            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
+          }
+          */
+          // And finally, remove the intrinsic
+          auto tmp = MIi;
+          MIi--;
+          tmp->removeFromParent();
+
+          found = true; // make sure we return true when we modify stuff
+
+          break;
       }
+
     }
   }
-  return true;
+
+  return found;
 }
