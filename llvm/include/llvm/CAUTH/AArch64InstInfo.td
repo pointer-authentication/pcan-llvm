@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-// Author: Zaheer Gauhar <zaheer.gauhar@pm.me>
+// Author: Zaheer Ahmed Gauhar <zaheer.gauhar@pm.me>
 // ***Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/***
 //
 // This file is distributed under the University of Illinois Open Source

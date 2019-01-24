@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //
-// Author: Zaheer Gauhar <zaheer.gauhar@pm.me>
-// *******Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/**********
+// Author: Zaheer Ahmed Gauhar <zaheer.gauhar@pm.me>
+// ***Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/***
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
@@ -40,11 +40,11 @@ namespace {
     CAuthIR() : FunctionPass(ID) {}
 
     bool runOnFunction(Function &F) override {
-      errs() << "CAuth-IR: ";
+      errs() << DEBUG_TYPE;
       errs().write_escaped(F.getName()) << '\n';
       for (auto &BB : F){
         for (auto &I : BB){
-          errs() << "CAuth-IR: ";
+          errs() << DEBUG_TYPE;
           
           if(isa<AllocaInst>(I)){
             llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);

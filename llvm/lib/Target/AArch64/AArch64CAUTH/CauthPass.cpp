@@ -1,6 +1,6 @@
 //===----------------------------------------------------------------------===//
 //
-// Author: Zaheer Gauhar <zaheer.gauhar@pm.me>
+// Author: Zaheer Ahmed Gauhar <zaheer.gauhar@pm.me>
 // ***Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/***
 //
 // This file is distributed under the University of Illinois Open Source
@@ -73,8 +73,9 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   TRI = STI->getRegisterInfo();
 
   for (auto &MBB : MF) {
+    errs()<<MF.getName()<<":--->\n"<< MBB.getName() << ":--->\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      errs()<<MF.getName() << MF.getName() << "->" << MBB.getName() << "->";
+      //errs()<< MBB.getName() << "\n";
       MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
       switch(MIOpcode) {
