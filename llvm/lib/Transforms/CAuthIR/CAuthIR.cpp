@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-
+#include <llvm/CAUTH/CauthIntr.h>
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -23,6 +23,7 @@
 #include "llvm/IR/Instructions.h"
 
 using namespace llvm;
+using namespace CAUTH;
 
 #define DEBUG_TYPE "cauth-ir"
 
@@ -42,28 +43,40 @@ namespace {
     bool runOnFunction(Function &F) override {
       errs() << DEBUG_TYPE;
       errs().write_escaped(F.getName()) << '\n';
+      unsigned numBuffs = 0;
+      Value* oldcbuff = nullptr;
+      Instruction *loc = nullptr;
       for (auto &BB : F){
         for (auto &I : BB){
           errs() << DEBUG_TYPE;
           
           if(isa<AllocaInst>(I)){
             llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
-            auto* arr_ty = aI->getAllocatedType(); 
-            //errs()<<arr_ty->getTypeID();
-            if(I.getName().find("cauth_buff") == std::string::npos){
-              Type* intType = IntegerType::getInt64Ty(F.getParent()->getContext());
+            
+            if(I.getName().find("cauth_alloc") == std::string::npos){
+               auto &C = F.getParent()->getContext();
+              Type* int64Ty = Type::getInt64Ty(C);
               auto num = 1;
-              ArrayType* arrayType = ArrayType::get(intType, num);
-              Instruction *loc = I.getNextNode();
-              AllocaInst* arr_alloc = new AllocaInst(arrayType , 0, "cauth_buff", loc);
-              //I.dump();
-              //loc->dump();
+              ArrayType* arrayType = ArrayType::get(int64Ty, num);
+              loc = I.getNextNode();
+              AllocaInst* arr_alloc = new AllocaInst(int64Ty , 0, "cauth_alloc", loc);
+              oldcbuff = arr_alloc;
+              ++numBuffs;
+              Value* pac_instr = nullptr;
+              if (numBuffs==1)
+                pac_instr = CauthIntr::pacga(F, *loc);
+              else if (numBuffs>1)
+                pac_instr = CauthIntr::pacda(F, *loc, oldcbuff);
+              //auto store = new StoreInst(paced_instr, arr_alloc, loc);
             }
+          }
+          else if(isa<ReturnInst>(I)){
+            auto aut_instr = CauthIntr::autda(F, I, oldcbuff);
           }
         }
          BB.dump();
       }
-      return true; //InsertStackProtectors();
+      return true; 
     }
   };
 }

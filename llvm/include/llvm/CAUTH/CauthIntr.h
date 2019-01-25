@@ -21,11 +21,15 @@ namespace CAUTH {
 class CauthIntr {
 
 public:
-  static Value *pac_pointer(Function &F, Instruction &I, const std::string &name = "");
-  static Value *pac_pointer(IRBuilder<> *builder, Module &M, Instruction &I, const std::string &name = "");
 
-  static Value *load_aut_pointer(Function &F, Instruction &I);
-  static Value *store_aut_pointer(Function &F, Instruction &I);
+  static Value *pacga(Function &F, Instruction &I, const std::string &name = "");
+  static Value *pacga(IRBuilder<> *builder, Module &M, Instruction &I, const std::string &name = "");
+
+  static Value *pacda(Function &F, Instruction &I, Value *V, const std::string &name = "");
+  static Value *pacda(IRBuilder<> *builder, Module &M, Value *V, const std::string &name = "");
+
+  static Value *autda(Function &F, Instruction &I, Value *V, const std::string &name = "");
+  static Value *autda(IRBuilder<> *builder, Module &M, Value *V, const std::string &name = "");
 };
 
 } // CAUTH

@@ -20,7 +20,7 @@
 using namespace llvm;
 using namespace CAUTH;
 
-#define DEBUG_TYPE "CauthIRIntr"
+#define DEBUG_TYPE "CauthIRIntr:"
 
 namespace {
 
@@ -50,11 +50,12 @@ bool CauthIRIntr::runOnFunction(Function &F) {
         default:
           break;
         case Instruction::Alloca: {
+          
           errs()<<DEBUG_TYPE;
           I.dump();
           auto AI = dyn_cast<AllocaInst>(&I);
           assert(AI != nullptr);          
-          auto paced_instr = CauthIntr::pac_pointer(F,I);
+          
           break;
         }        
       }

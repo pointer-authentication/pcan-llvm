@@ -82,14 +82,35 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         default:
           break;
         case AArch64::CAUTH_PACGA:
+        {
+          const auto &DL = MIi->getDebugLoc();
+          unsigned dst = MIi->getOperand(0).getReg();
+          unsigned mod = MIi->getOperand(1).getReg();
+          //unsigned mod = MIi->getOperand(2).getReg();
+           // Save the mod register if it is marked as killable!
+          if (MIi->getOperand(1).isKill()) {
+            unsigned oldMod = mod;
+            mod = AArch64::X24;
+            BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
+          }
+           // Move the pointer to destination register
+          //BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+
+          BuildMI(MBB, MIi, DL, TII->get(AArch64::PACGA), dst).addReg(mod).addReg(AArch64::SP);
+          auto tmp = MIi;
+          MIi--;
+          tmp->removeFromParent();
+          found = true; 
           break;
+        }
         case AArch64::CAUTH_PACDA:
         case AArch64::CAUTH_AUTDA:
+          {
           const auto &DL = MIi->getDebugLoc();
           const unsigned dst = MIi->getOperand(0).getReg();
           const unsigned src = MIi->getOperand(1).getReg();
           unsigned mod = MIi->getOperand(2).getReg();
-
+           
           // Save the mod register if it is marked as killable!
           if (MIi->getOperand(2).isKill()) {
             unsigned oldMod = mod;
@@ -119,6 +140,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           found = true; // make sure we return true when we modify stuff
 
           break;
+        }
       }
 
     }

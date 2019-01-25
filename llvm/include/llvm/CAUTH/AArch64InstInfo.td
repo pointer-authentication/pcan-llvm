@@ -10,8 +10,8 @@
 
 let isPseudo = 1 in {
   def CAUTH_PACGA : Pseudo<(outs GPR64:$dst),
-                           (ins GPR64:$ptr, GPR64:$mod),
-                           [(set i64:$dst, (int_ca_pacga GPR64:$ptr, GPR64:$mod))]>,
+                           (ins GPR64:$mod),
+                           [(set i64:$dst, (int_ca_pacga i64:$mod))]>,
                     Sched<[]>;
 }
 
