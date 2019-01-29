@@ -48,7 +48,18 @@ namespace {
    bool runOnMachineFunction(MachineFunction &) override;
    bool instrumentBranches(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
 
+
+   void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr);
+
+   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+   void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
+                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+
  private:
+   const TargetMachine *TM = nullptr;
    const AArch64Subtarget *STI = nullptr;
    const AArch64InstrInfo *TII = nullptr;
    const AArch64RegisterInfo *TRI = nullptr;
@@ -67,46 +78,42 @@ bool CauthPass::doInitialization(Module &M) {
 
 bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
+  TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
-  //TM = &MF.getTarget();;
   TRI = STI->getRegisterInfo();
+  //partsUtils = PartsUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
-    errs()<<MF.getName()<<":--->\n"<< MBB.getName() << ":--->\n";
+    errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       //errs()<< MBB.getName() << "\n";
       MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
+      //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
+
       switch(MIOpcode) {
         default:
           break;
         case AArch64::CAUTH_PACGA:
-        {
-          const auto &DL = MIi->getDebugLoc();
-          unsigned dst = MIi->getOperand(0).getReg();
-          unsigned mod = MIi->getOperand(1).getReg();
-          //unsigned mod = MIi->getOperand(2).getReg();
-           // Save the mod register if it is marked as killable!
-          if (MIi->getOperand(1).isKill()) {
-            unsigned oldMod = mod;
-            mod = AArch64::X24;
-            BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-          }
-           // Move the pointer to destination register
-          //BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-
-          BuildMI(MBB, MIi, DL, TII->get(AArch64::PACGA), dst).addReg(mod).addReg(AArch64::SP);
-          auto tmp = MIi;
-          MIi--;
-          tmp->removeFromParent();
+        { 
+          errs()<<"\nInside CAUTH_PACGA Case\n";
+          auto &MI = *MIi--;
+          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACGA);
           found = true; 
           break;
         }
-        case AArch64::CAUTH_PACDA:
+        
         case AArch64::CAUTH_AUTDA:
-          {
-          const auto &DL = MIi->getDebugLoc();
+        {
+          errs()<<"\nInside CAUTH_AUTDA Case\n";
+          break;
+        }
+        case AArch64::CAUTH_PACDA:
+        {
+          //  errs()<<"\nInside CAUTH_PACDA Case\n";
+            
+         /* const auto &DL = MIi->getDebugLoc();
           const unsigned dst = MIi->getOperand(0).getReg();
           const unsigned src = MIi->getOperand(1).getReg();
           unsigned mod = MIi->getOperand(2).getReg();
@@ -121,30 +128,68 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
 
           // Insert appropriate PA instruction
-          /*
+          
           if (MIOpcode == AArch64::CAUTH_PACDA) {
-            log->inc(TAG ".pacia", true) << "converting CAUTH_PACDA\n";
-            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACIA), DL);
-            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountCodePtrCreate);
+            insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
           } else if (MIOpcode == AArch64::CAUTH_AUTDA) {
-            //log->inc(TAG ".pacda", true) << "converting CAUTH_AUTDA\n";
-            partsUtils->insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
-            partsUtils->addEventCallFunction(MBB, *MIi, DL, funcCountDataStr);
+            insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTDA), DL);
           }
-          */
           // And finally, remove the intrinsic
           auto tmp = MIi;
           MIi--;
-          tmp->removeFromParent();
+          tmp->removeFromParent();*/
 
           found = true; // make sure we return true when we modify stuff
 
           break;
         }
       }
-
     }
+     // MBB.dump();
   }
 
   return found;
+}
+
+
+void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
+  const auto &DL = MI.getDebugLoc();
+  const unsigned dst = MI.getOperand(0).getReg();
+  //const unsigned src = MI.getOperand(1).getReg();
+  //unsigned mod = AArch64::SP;
+  
+  const unsigned src = MI.getOperand(1).getReg();
+  unsigned mod = AArch64::SP;
+  
+  // Save the mod register if it is marked as killable!
+ /* if (MI.getOperand(2).isKill()) {
+    unsigned oldMod = mod;
+    mod = AArch64::X24;
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
+  }*/
+  // Move the pointer to destination register
+  //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
+  //insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
+
+  // And finally, remove the intrinsic
+  MI.removeFromParent();
+}
+
+
+
+
+
+void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
+  insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
+}
+
+void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
+                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
+    if (MIi == nullptr) {
+      BuildMI(&MBB, DL, MCID).addReg(ptrReg).addReg(modReg);
+    } else {
+      BuildMI(MBB, MIi, DL, MCID, ptrReg).addReg(modReg);
+    }
 }

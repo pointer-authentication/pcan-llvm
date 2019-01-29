@@ -21,7 +21,7 @@ Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, const s
   
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
-  auto pacIntr = Intrinsic::getDeclaration(&M, (Intrinsic::ca_pacga), arg_types);
+  auto pacIntr = Intrinsic::getDeclaration(&M, (Intrinsic::ca_pacga));
   Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,0));
   Value *args[] { modifier };
   return builder->CreateCall(pacIntr, args, name);

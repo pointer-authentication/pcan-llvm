@@ -47,31 +47,46 @@ namespace {
       Value* oldcbuff = nullptr;
       Instruction *loc = nullptr;
       auto &C = F.getParent()->getContext();
-      Type* int64Ty = Type::getInt64Ty(C);
+      Type* buffTy = nullptr;
+      //Type* int64PtrTy = PointerType::get(int64Ty, 0);
       Value *pacga_instr = nullptr;
+      Value *pacda_instr = nullptr;
+      AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
         for (auto &I : BB){
           //errs() << DEBUG_TYPE;
           if(isa<AllocaInst>(I)){
             llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
-            if(I.getName().find("cauth_alloc") == std::string::npos){
+            if(I.getName().find("cauth_alloc") == std::string::npos && I.getName().find("retval") == std::string::npos){
               auto num = 1;
-              ArrayType* arrayType = ArrayType::get(int64Ty, num);
               loc = I.getNextNode();
-              AllocaInst* arr_alloc = new AllocaInst(int64Ty , 0, "cauth_alloc", loc);
+              IRBuilder<> Builder(loc);
+
+              int i = 0;
+              Type* tmp = nullptr;
+              while (i <= numBuffs){
+                if (i==0){
+                  buffTy = Type::getInt64Ty(C);
+                }else{
+                  tmp = PointerType::get(buffTy, 0);
+                  buffTy = tmp;
+                }
+                i++;
+              }
+
+              
+              arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
               ++numBuffs;
               
-              IRBuilder<> Builder(loc);
               if (numBuffs==1){
                 pacga_instr = CauthIntr::pacga(F, *loc);
-                Builder.CreateStore(pacga_instr, arr_alloc);
+                Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
               }
               else if (numBuffs>1){
-                pacga_instr = CauthIntr::pacda(F, *loc, oldcbuff);
+                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
-                auto paced_val = new PtrToIntInst(pacga_instr, int64Ty, "paced_val", loc);
-                Builder.CreateStore(paced_val, oldcbuff);
+                Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
             }
           }
@@ -81,13 +96,10 @@ namespace {
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
                 auto pacga2_instr = CauthIntr::pacga(F, I);
-                auto cmp = new ICmpInst(&I, llvm::ICmpInst::getSignedPredicate(llvm::CmpInst::ICMP_EQ), canary_val, pacga2_instr);
+                auto cmp = new ICmpInst(&I, llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr);
               }
-              else{
-              
-              Type* ty=pacga_instr->getType();
-              auto aut_val = new IntToPtrInst(canary_val, ty, "", &I);
-              Value* autda_instr = CauthIntr::autda(F, I, aut_val);
+              else if (i>1){
+              Value* autda_instr = CauthIntr::autda(F, I, canary_val);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
