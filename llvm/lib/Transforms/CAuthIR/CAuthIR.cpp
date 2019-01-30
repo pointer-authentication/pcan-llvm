@@ -39,6 +39,8 @@ namespace {
     static char ID; // Pass identification
   
     CAuthIR() : FunctionPass(ID) {}
+    BasicBlock* CreateBB(LLVMContext &C, const Twine &Name="", 
+                              Function *Parent=nullptr, BasicBlock *InsertBefore=nullptr );
 
     bool runOnFunction(Function &F) override {
       errs() << DEBUG_TYPE;
@@ -47,22 +49,27 @@ namespace {
       Value* oldcbuff = nullptr;
       Instruction *loc = nullptr;
       auto &C = F.getParent()->getContext();
+      BasicBlock* TrueBB=nullptr;
+      BasicBlock* FalseBB=nullptr;
       Type* buffTy = nullptr;
       //Type* int64PtrTy = PointerType::get(int64Ty, 0);
       Value *pacga_instr = nullptr;
       Value *pacda_instr = nullptr;
       AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
-        for (auto &I : BB){
+         
+        //for (auto &I : BB){
+        for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
           //errs() << DEBUG_TYPE;
-          if(isa<AllocaInst>(I)){
-            llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
-            if(I.getName().find("cauth_alloc") == std::string::npos && I.getName().find("retval") == std::string::npos){
-              auto num = 1;
-              loc = I.getNextNode();
+          //I->dump();
+          if(isa<AllocaInst>(*I)){
+            //llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
+            if(I->getName().find("cauth_alloc") == std::string::npos && I->getName() != "retval"){
+
+              loc = I->getNextNode();
               IRBuilder<> Builder(loc);
 
-              int i = 0;
+              unsigned i = 0;
               Type* tmp = nullptr;
               while (i <= numBuffs){
                 if (i==0){
@@ -74,14 +81,13 @@ namespace {
                 i++;
               }
 
-              
               arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
               ++numBuffs;
               
               if (numBuffs==1){
                 pacga_instr = CauthIntr::pacga(F, *loc);
-                Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
+                Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
               }
               else if (numBuffs>1){
                 pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff);
@@ -91,20 +97,35 @@ namespace {
             }
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){
-            IRBuilder<> Builder(&I);
+            Instruction *inst= &*I;
+            IRBuilder<> Builder(inst);
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
-                auto pacga2_instr = CauthIntr::pacga(F, I);
-                auto cmp = new ICmpInst(&I, llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr);
+                auto pacga2_instr = CauthIntr::pacga(F, *I);
+                auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
+                TrueBB= CAuthIR::CreateBB(C, "TrueBB", &F);
+                FalseBB= CAuthIR::CreateBB(C, "FalseBB", &F);
+                Builder.CreateCondBr(cmp, TrueBB, FalseBB);
+                auto tmp = I;
+                I--;
+                tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, I, canary_val);
+              Value* autda_instr = CauthIntr::autda(F, *I, canary_val);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
           }
         }
+        
+         if (BB.getName()=="TrueBB"){
+            Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
+            llvm::ReturnInst::Create(C, ret, TrueBB);
+          }else if (BB.getName()=="FalseBB"){
+            Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
+            llvm::ReturnInst::Create(C, ret, FalseBB);
+          }
          BB.dump();
       }
       return true; 
@@ -115,3 +136,6 @@ namespace {
 char CAuthIR::ID = 0;
 static RegisterPass<CAuthIR> X("cauth-ir", "CAuth IR Pass");
 
+BasicBlock* CAuthIR::CreateBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
+  return llvm::BasicBlock::Create(C, Name, Parent, InsertBefore);
+}

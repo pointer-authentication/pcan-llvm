@@ -22,8 +22,9 @@ Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, const s
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
   auto pacIntr = Intrinsic::getDeclaration(&M, (Intrinsic::ca_pacga));
-  Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,0));
-  Value *args[] { modifier };
+  Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,1000));
+  Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+  Value *args[] { src, modifier };
   return builder->CreateCall(pacIntr, args, name);
 }
 
@@ -39,7 +40,7 @@ Value *CauthIntr::pacda(IRBuilder<> *builder, Module &M, Value *V, const std::st
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
   auto pacIntr = Intrinsic::getDeclaration(&M, (Intrinsic::ca_pacda), arg_types);
-  Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,0));
+  Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
   Value *args[] { V, modifier };
   return builder->CreateCall(pacIntr, args, name);
 }
@@ -56,7 +57,7 @@ Value *CauthIntr::autda(IRBuilder<> *builder, Module &M, Value *V, const std::st
   Type *arg_types[] = { V->getType() };
   auto intr = Intrinsic::getDeclaration(&M, Intrinsic::ca_autda, arg_types);
 
-  Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,0));
+  Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
   // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
   Value *args[] { V, modifier };
   return builder->CreateCall(intr, args, name);

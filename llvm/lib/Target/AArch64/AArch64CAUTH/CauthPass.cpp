@@ -104,41 +104,19 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           break;
         }
         
+        case AArch64::CAUTH_PACDA:
+        {
+          errs()<<"\nInside CAUTH_PACDA Case\n";
+          auto &MI = *MIi--;
+          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACDA);
+          break;
+        }
         case AArch64::CAUTH_AUTDA:
         {
           errs()<<"\nInside CAUTH_AUTDA Case\n";
-          break;
-        }
-        case AArch64::CAUTH_PACDA:
-        {
-          //  errs()<<"\nInside CAUTH_PACDA Case\n";
             
-         /* const auto &DL = MIi->getDebugLoc();
-          const unsigned dst = MIi->getOperand(0).getReg();
-          const unsigned src = MIi->getOperand(1).getReg();
-          unsigned mod = MIi->getOperand(2).getReg();
-           
-          // Save the mod register if it is marked as killable!
-          if (MIi->getOperand(2).isKill()) {
-            unsigned oldMod = mod;
-            mod = AArch64::X24;
-            BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-          }
-          // Move the pointer to destination register
-          BuildMI(MBB, MIi, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-
-          // Insert appropriate PA instruction
-          
-          if (MIOpcode == AArch64::CAUTH_PACDA) {
-            insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::PACDA), DL);
-          } else if (MIOpcode == AArch64::CAUTH_AUTDA) {
-            insertPAInstr(MBB, MIi, dst, mod, TII->get(AArch64::AUTDA), DL);
-          }
-          // And finally, remove the intrinsic
-          auto tmp = MIi;
-          MIi--;
-          tmp->removeFromParent();*/
-
+          auto &MI = *MIi--;
+          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::AUTDA);
           found = true; // make sure we return true when we modify stuff
 
           break;
@@ -155,23 +133,32 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
 void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
-  //const unsigned src = MI.getOperand(1).getReg();
+  const unsigned src = MI.getOperand(1).getReg();
   //unsigned mod = AArch64::SP;
   
-  const unsigned src = MI.getOperand(1).getReg();
-  unsigned mod = AArch64::SP;
-  
-  // Save the mod register if it is marked as killable!
- /* if (MI.getOperand(2).isKill()) {
-    unsigned oldMod = mod;
-    mod = AArch64::X24;
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-  }*/
-  // Move the pointer to destination register
-  //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-  BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
-  //insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
-
+  if (instr==AArch64::PACGA){
+    //unsigned mod = AArch64::SP;
+     unsigned mod = MI.getOperand(2).getReg();
+    // Save the mod register if it is marked as killable!
+    if (MI.getOperand(2).isKill()) {
+      unsigned oldMod = mod;
+      mod = AArch64::X24;
+      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
+    }
+    BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
+  }
+  else if (instr==AArch64::PACDA || instr==AArch64::AUTDA){
+    unsigned mod = MI.getOperand(2).getReg();
+    // Save the mod register if it is marked as killable!
+    if (MI.getOperand(2).isKill()) {
+      unsigned oldMod = mod;
+      mod = AArch64::X24;
+      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
+    }
+    // Move the pointer to destination register
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+    insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
+  }
   // And finally, remove the intrinsic
   MI.removeFromParent();
 }

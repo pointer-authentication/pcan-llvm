@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-def int_ca_pacga : Intrinsic<[llvm_i64_ty], [llvm_i64_ty], [IntrNoMem]>;
+def int_ca_pacga : Intrinsic<[llvm_i64_ty], [llvm_i64_ty, llvm_i64_ty], [IntrNoMem]>;
 def int_ca_pacda : Intrinsic<[llvm_anyptr_ty], [LLVMMatchType<0>, llvm_i64_ty], [IntrNoMem]>;
 def int_ca_autda : Intrinsic<[llvm_anyptr_ty], [LLVMMatchType<0>, llvm_i64_ty], [IntrNoMem]>;
 
