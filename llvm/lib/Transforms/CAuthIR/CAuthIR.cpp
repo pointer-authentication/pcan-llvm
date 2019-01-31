@@ -41,7 +41,7 @@ namespace {
     CAuthIR() : FunctionPass(ID) {}
     BasicBlock* CreateEmptyBB(LLVMContext &C, const Twine &Name="", 
                               Function *Parent=nullptr, BasicBlock *InsertBefore=nullptr );
-    void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB);
+    void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret);
 
     bool runOnFunction(Function &F) override {
       errs() << DEBUG_TYPE;
@@ -56,6 +56,7 @@ namespace {
       //Type* int64PtrTy = PointerType::get(int64Ty, 0);
       Value *pacga_instr = nullptr;
       Value *pacda_instr = nullptr;
+      Value *save_ret = nullptr;
       AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
          
@@ -100,6 +101,7 @@ namespace {
           else if(isa<ReturnInst>(I) && numBuffs>0){
             Instruction *inst= &*I;
             IRBuilder<> Builder(inst);
+            llvm::ReturnInst* rI = dyn_cast<llvm::ReturnInst>(inst);
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
@@ -108,6 +110,7 @@ namespace {
                 TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
                 FalseBB= CAuthIR::CreateEmptyBB(C, "FalseBB", &F);
                 Builder.CreateCondBr(cmp, TrueBB, FalseBB);
+                save_ret = rI->getReturnValue();
                 auto tmp = I;
                 I--;
                 tmp->eraseFromParent();
@@ -121,21 +124,12 @@ namespace {
         }
         
          if (BB.getName()=="TrueBB"){
-            Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
-            llvm::ReturnInst::Create(C, ret, TrueBB);
-          }else if (BB.getName()=="FalseBB"){
             //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
-            //llvm::ReturnInst::Create(C, ret, FalseBB);
-            
-            /*IRBuilder<> B(FalseBB);
-            Module* M = F.getParent();
-            Constant *CanaryChkFail = M->getOrInsertFunction("__canary_chk_fail", Type::getVoidTy(C));
-            B.CreateCall(CanaryChkFail, {});
-            B.CreateUnreachable();*/
-            CAuthIR::CreateFailBB(C, &F, FalseBB);
-           
+            llvm::ReturnInst::Create(C, save_ret, TrueBB);
+          }else if (BB.getName()=="FalseBB"){
+            CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
           }
-         BB.dump();
+         //BB.dump();
       }
       return true; 
     }
@@ -150,19 +144,15 @@ BasicBlock* CAuthIR::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *
 }
 
 //Inserts canary_chk_fail instructions into the FalseBB
-void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB){
+void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret){
   IRBuilder<> B(FalseBB);
   Module* M = F->getParent();
-  auto arg = B.CreateGlobalString("***Canary Check Failed***\nExiting....\n", "__canary_chk_fail");
+  auto arg = B.CreateGlobalString("\n***Canary Check Failed***\nExiting....\n\n", "__canary_chk_fail");
   Constant *printfFunc = M->getOrInsertFunction("printf", FunctionType::get(IntegerType::getInt32Ty(C), 
                         PointerType::get(Type::getInt8Ty(C), 0)) );
-  printfFunc->dump();
-  
-  arg->dump();
-  
   B.CreateCall(printfFunc, {arg}, "printfCall");
   //B.CreateUnreachable();
-  Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
-  llvm::ReturnInst::Create(C, ret, FalseBB);
+  //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
+  llvm::ReturnInst::Create(C, save_ret, FalseBB);
 
 }

@@ -88,7 +88,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
     errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       //errs()<< MBB.getName() << "\n";
-      MIi->dump();
+      //MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
       //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
 
@@ -97,7 +97,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           break;
         case AArch64::CAUTH_PACGA:
         { 
-          errs()<<"\nInside CAUTH_PACGA Case\n";
+          //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
           CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACGA);
           found = true; 
@@ -106,14 +106,14 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         
         case AArch64::CAUTH_PACDA:
         {
-          errs()<<"\nInside CAUTH_PACDA Case\n";
+          //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
           CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACDA);
           break;
         }
         case AArch64::CAUTH_AUTDA:
         {
-          errs()<<"\nInside CAUTH_AUTDA Case\n";
+          //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
           auto &MI = *MIi--;
           CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::AUTDA);
