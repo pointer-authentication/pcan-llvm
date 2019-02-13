@@ -24,8 +24,10 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+// CAUTH includes
+#include "llvm/CAUTH/Cauth.h"
 
-#define DEBUG_TYPE "aarch64-cauth"
+#define DEBUG_TYPE "aarch64-test"
 
 using namespace llvm;
 using namespace llvm::CAUTH;

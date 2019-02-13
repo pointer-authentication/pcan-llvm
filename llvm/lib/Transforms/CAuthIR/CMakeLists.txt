@@ -12,6 +12,7 @@ endif()
 
 add_llvm_loadable_module( LLVMCAuthIR
   CAuthIR.cpp
+  CAuthIRIntr.cpp
 
   DEPENDS
   intrinsics_gen

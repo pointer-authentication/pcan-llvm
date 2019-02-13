@@ -16,6 +16,9 @@ namespace llvm {
 namespace CAUTH {
 
 bool useCAuth();
+bool useCAuthMod();
+bool useTest();
+
 
 } // CAUTH
 

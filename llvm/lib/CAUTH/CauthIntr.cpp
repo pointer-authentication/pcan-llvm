@@ -17,7 +17,7 @@
 using namespace llvm;
 using namespace llvm::CAUTH;
 
-Value *CauthIntr::pacga(IRBuilder<> *builder, hasModule &M, Instruction &I, bool hasMod, const std::string &name) {
+Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool hasMod, const std::string &name) {
   
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
@@ -42,7 +42,7 @@ Value *CauthIntr::pacga(Function &F, Instruction &I, bool hasMod,const std::stri
 }
 
 
-Value *CauthIntr::pacda(IRBuilder<> *builder, hasModule &M, Value *V, bool hasMod, const std::string &name) {
+Value *CauthIntr::pacda(IRBuilder<> *builder, Module &M, Value *V, bool hasMod, const std::string &name) {
   
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
@@ -65,21 +65,21 @@ Value *CauthIntr::pacda(Function &F, Instruction &I, Value *V, bool hasMod, cons
   return pacda(&Builder, *F.getParent(), V, hasMod, name);
 }
 
-Value *CauthIntr::autda(IRBuilder<> *builder, hasModule &M, Value *V, bool hasMod, const std::string &name) {
+Value *CauthIntr::autda(IRBuilder<> *builder, Module &M, Value *V, bool hasMod, const std::string &name) {
   // Get the intrinsic declaration based on our specific pointer type
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
-  auto intr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_autda : Intrinsic::ca_autdza), arg_types);
+  auto autIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_autda : Intrinsic::ca_autdza), arg_types);
 
  if (hasMod){
     Value *hasModifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
     // Create the arguments for the intrinsic call (i.e., original pointer + hasModifier)
     Value *args[] { V, hasModifier };
-    return builder->CreateCall(pacIntr, args, name);
+    return builder->CreateCall(autIntr, args, name);
   }
   else{
     Value *args[] { V };
-    return builder->CreateCall(pacIntr, args, name);
+    return builder->CreateCall(autIntr, args, name);
   }
 }
 

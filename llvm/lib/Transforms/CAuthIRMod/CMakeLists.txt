@@ -12,7 +12,8 @@ endif()
 
 add_llvm_loadable_module( LLVMCAuthIRMod
   CAuthIRMod.cpp
-  
+  CAuthIRIntrMod.cpp
+
   DEPENDS
   intrinsics_gen
   PLUGIN_TOOL
