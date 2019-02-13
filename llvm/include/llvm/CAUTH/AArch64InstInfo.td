@@ -29,3 +29,25 @@ let isPseudo = 1 in {
                     Sched<[]>;
 }
 
+
+let isPseudo = 1 in {
+  def CAUTH_PACGZA : Pseudo<(outs GPR64:$dst),
+                           (ins GPR64:$src),
+                           [(set i64:$dst, (int_ca_pacga GPR64:$src))]>,
+                    Sched<[]>;
+}
+
+let isPseudo = 1 in {
+  def CAUTH_PACDZA : Pseudo<(outs GPR64:$dst),
+                           (ins GPR64:$ptr),
+                           [(set i64:$dst, (int_ca_pacda GPR64:$ptr))]>,
+                    Sched<[]>;
+}
+
+let isPseudo = 1 in {
+  def CAUTH_AUTDZA : Pseudo<(outs GPR64:$dst),
+                           (ins GPR64:$ptr),
+                           [(set i64:$dst, (int_ca_autda GPR64:$ptr))]>,
+                    Sched<[]>;
+}
+

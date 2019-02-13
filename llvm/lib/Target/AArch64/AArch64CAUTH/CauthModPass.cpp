@@ -27,18 +27,18 @@
 // CAUTH includes
 #include "llvm/CAUTH/Cauth.h"
 
-#define DEBUG_TYPE "aarch64-cauth"
+#define DEBUG_TYPE "aarch64-cauth-mod"
 
 using namespace llvm;
 using namespace llvm::CAUTH;
 
 
 namespace {
- class CauthPass : public MachineFunctionPass {
+ class CauthModPass : public MachineFunctionPass {
 
  public:
    static char ID;
-   CauthPass() :
+   CauthModPass() :
    MachineFunctionPass(ID) {}
    //log(PARTS::PartsLog::getLogger(DEBUG_TYPE)){}
 
@@ -66,17 +66,17 @@ namespace {
  };
 } // end anonymous namespace
 
-FunctionPass *llvm::createCauthPass() {
-  return new CauthPass();
+FunctionPass *llvm::createCauthModPass() {
+  return new CauthModPass();
 }
 
-char CauthPass::ID = 0;
+char CauthModPass::ID = 0;
 
-bool CauthPass::doInitialization(Module &M) {
+bool CauthModPass::doInitialization(Module &M) {
   return true;
 }
 
-bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
+bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
@@ -95,28 +95,28 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
       switch(MIOpcode) {
         default:
           break;
-        case AArch64::CAUTH_PACGZA:
+        case AArch64::CAUTH_PACGA:
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
-          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACGA);
+          CauthModPass::convertCauthIntrinsic(MBB, MI, AArch64::PACGA);
           found = true; 
           break;
         }
         
-        case AArch64::CAUTH_PACDZA:
+        case AArch64::CAUTH_PACDA:
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
-          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACDZA);
+          CauthModPass::convertCauthIntrinsic(MBB, MI, AArch64::PACDA);
           break;
         }
-        case AArch64::CAUTH_AUTDZA:
+        case AArch64::CAUTH_AUTDA:
         {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
           auto &MI = *MIi--;
-          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::AUTDZA);
+          CauthModPass::convertCauthIntrinsic(MBB, MI, AArch64::AUTDA);
           found = true; // make sure we return true when we modify stuff
 
           break;
@@ -130,7 +130,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
 }
 
 
-void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
+void CauthModPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
@@ -167,12 +167,12 @@ void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, 
 
 
 
-void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+void CauthModPass::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                                unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
   insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
 }
 
-void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
+void CauthModPass::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
                                unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
     if (MIi == nullptr) {
       BuildMI(&MBB, DL, MCID).addReg(ptrReg).addReg(modReg);

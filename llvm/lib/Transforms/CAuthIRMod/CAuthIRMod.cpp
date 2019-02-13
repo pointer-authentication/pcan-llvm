@@ -25,20 +25,20 @@
 using namespace llvm;
 using namespace CAUTH;
 
-#define DEBUG_TYPE "cauth-ir:\t"
+#define DEBUG_TYPE "cauth-ir-mod:\t"
 
 
 
-//FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
+//FunctionPass *llvm::createCauthIRModPass() { return new CauthIRMod(); }
 
 namespace {
-  // CAuthIR - 
-  struct CAuthIR : public FunctionPass {
+  // CauthIRMod - 
+  struct CauthIRMod : public FunctionPass {
     
   public:
     static char ID; // Pass identification
   
-    CAuthIR() : FunctionPass(ID) {}
+    CauthIRMod() : FunctionPass(ID) {}
     BasicBlock* CreateEmptyBB(LLVMContext &C, const Twine &Name="", 
                               Function *Parent=nullptr, BasicBlock *InsertBefore=nullptr );
     void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret);
@@ -87,12 +87,12 @@ namespace {
               ++numBuffs;
               
               if (numBuffs==1){
-                pacga_instr = CauthIntr::pacga(F, *loc, false);
+                pacga_instr = CauthIntr::pacga(F, *loc, true);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
               }
               else if (numBuffs>1){
-                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, false);
+                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, true);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
@@ -105,10 +105,10 @@ namespace {
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
-                auto pacga2_instr = CauthIntr::pacga(F, *I, false);
+                auto pacga2_instr = CauthIntr::pacga(F, *I, true);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
-                TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
-                FalseBB= CAuthIR::CreateEmptyBB(C, "FalseBB", &F);
+                TrueBB= CauthIRMod::CreateEmptyBB(C, "TrueBB", &F);
+                FalseBB= CauthIRMod::CreateEmptyBB(C, "FalseBB", &F);
                 Builder.CreateCondBr(cmp, TrueBB, FalseBB);
                 save_ret = rI->getReturnValue();
                 auto tmp = I;
@@ -116,7 +116,7 @@ namespace {
                 tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, false);
+              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, true);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
@@ -127,7 +127,7 @@ namespace {
             //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
             llvm::ReturnInst::Create(C, save_ret, TrueBB);
           }else if (BB.getName()=="FalseBB"){
-            CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
+            CauthIRMod::CreateFailBB(C, &F, FalseBB, save_ret);
           }
          //BB.dump();
       }
@@ -136,15 +136,15 @@ namespace {
   };
 }
 
-char CAuthIR::ID = 0;
-static RegisterPass<CAuthIR> X("cauth-ir", "CAuth IR Pass");
+char CauthIRMod::ID = 0;
+static RegisterPass<CauthIRMod> X("cauth-ir-mod", "CAuth IR Pass with custom modifiers");
 
-BasicBlock* CAuthIR::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
+BasicBlock* CauthIRMod::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
   return llvm::BasicBlock::Create(C, Name, Parent, InsertBefore);
 }
 
 //Inserts canary_chk_fail instructions into the FalseBB
-void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret){
+void CauthIRMod::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret){
   IRBuilder<> B(FalseBB);
   Module* M = F->getParent();
   auto arg = B.CreateGlobalString("\n***Canary Check Failed***\nExiting....\n\n", "__canary_chk_fail");
