@@ -62,6 +62,7 @@ add_llvm_target(AArch64CodeGen
 
   AArch64CAUTH/CauthPass.cpp
   AArch64CAUTH/CauthModPass.cpp
+  AArch64CAUTH/CauthUtils.cpp
   AArch64Test/AArch64TestPass.cpp
 
   DEPENDS

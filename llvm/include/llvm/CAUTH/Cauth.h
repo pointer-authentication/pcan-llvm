@@ -18,7 +18,7 @@ namespace CAUTH {
 bool useCAuth();
 bool useCAuthMod();
 bool useTest();
-
+bool useDummy();
 
 } // CAUTH
 

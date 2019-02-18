@@ -25,7 +25,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 // CAUTH includes
-#include "llvm/CAUTH/Cauth.h"
+#include "CauthUtils.h"
 
 #define DEBUG_TYPE "aarch64-cauth-mod"
 
@@ -46,23 +46,14 @@ namespace {
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
-   bool instrumentBranches(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-
-
-   void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr);
-
-   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
-
-   void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
-                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
-
-
+ 
  private:
-   const TargetMachine *TM = nullptr;
-   const AArch64Subtarget *STI = nullptr;
-   const AArch64InstrInfo *TII = nullptr;
-   const AArch64RegisterInfo *TRI = nullptr;
+    const TargetMachine *TM = nullptr;
+    const AArch64Subtarget *STI = nullptr;
+    const AArch64InstrInfo *TII = nullptr;
+    const AArch64RegisterInfo *TRI = nullptr;
+
+    CauthUtils_ptr cauthUtils_ptr = nullptr;
  };
 } // end anonymous namespace
 
@@ -82,13 +73,13 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
-  //partsUtils = PartsUtils::get(TRI, TII);
+  cauthUtils_ptr = CauthUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
-    errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
+    //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       //errs()<< MBB.getName() << "\n";
-      MIi->dump();
+      //MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
       //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
 
@@ -99,7 +90,7 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
-          CauthModPass::convertCauthIntrinsic(MBB, MI, AArch64::PACGA);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true);
           found = true; 
           break;
         }
@@ -108,7 +99,7 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
-          CauthModPass::convertCauthIntrinsic(MBB, MI, AArch64::PACDA);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true);
           break;
         }
         case AArch64::CAUTH_AUTDA:
@@ -116,7 +107,7 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
           auto &MI = *MIi--;
-          CauthModPass::convertCauthIntrinsic(MBB, MI, AArch64::AUTDA);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, true);
           found = true; // make sure we return true when we modify stuff
 
           break;
@@ -130,53 +121,3 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
 }
 
 
-void CauthModPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
-  const auto &DL = MI.getDebugLoc();
-  const unsigned dst = MI.getOperand(0).getReg();
-  const unsigned src = MI.getOperand(1).getReg();
-  //unsigned mod = AArch64::SP;
-  
-  if (instr==AArch64::PACGA){
-    //unsigned mod = AArch64::SP;
-     unsigned mod = MI.getOperand(2).getReg();
-    // Save the mod register if it is marked as killable!
-    if (MI.getOperand(2).isKill()) {
-      unsigned oldMod = mod;
-      mod = AArch64::X24;
-      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-    }
-    BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
-  }
-  else if (instr==AArch64::PACDA || instr==AArch64::AUTDA){
-    unsigned mod = MI.getOperand(2).getReg();
-    // Save the mod register if it is marked as killable!
-    if (MI.getOperand(2).isKill()) {
-      unsigned oldMod = mod;
-      mod = AArch64::X24;
-      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-    }
-    // Move the pointer to destination register
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-    insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
-  }
-  // And finally, remove the intrinsic
-  MI.removeFromParent();
-}
-
-
-
-
-
-void CauthModPass::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
-  insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
-}
-
-void CauthModPass::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
-                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
-    if (MIi == nullptr) {
-      BuildMI(&MBB, DL, MCID).addReg(ptrReg).addReg(modReg);
-    } else {
-      BuildMI(MBB, MIi, DL, MCID, ptrReg).addReg(modReg);
-    }
-}

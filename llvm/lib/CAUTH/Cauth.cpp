@@ -22,6 +22,10 @@ static cl::opt<bool> EnableCAuthMod("cauth-mod", cl::Hidden,
                                       cl::desc("Canary Authentication with custom modifier"),
                                       cl::init(false));
 
+static cl::opt<bool> UseDummyInstructions("cauth-dummy", cl::Hidden,
+                                          cl::desc("Use dummy instructions and XOR instead of PA"),
+                                          cl::init(false));
+
 static cl::opt<bool> EnableTest("test", cl::Hidden,
                                       cl::desc("Test pass for MIR"),
                                       cl::init(false));
@@ -33,6 +37,10 @@ bool llvm::CAUTH::useCAuth() {
 
 bool llvm::CAUTH::useCAuthMod() {
   return EnableCAuthMod;
+}
+
+bool llvm::CAUTH::useDummy() {
+  return UseDummyInstructions;
 }
 
 bool llvm::CAUTH::useTest() {

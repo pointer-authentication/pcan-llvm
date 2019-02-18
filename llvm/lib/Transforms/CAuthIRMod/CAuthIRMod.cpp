@@ -62,8 +62,8 @@ namespace {
          
         //for (auto &I : BB){
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
-          errs() << DEBUG_TYPE;
-          I->dump();
+          //errs() << DEBUG_TYPE;
+          //I->dump();
           if(isa<AllocaInst>(*I)){
             //llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
             if(I->getName().find("cauth_alloc") == std::string::npos && I->getName() != "retval"){

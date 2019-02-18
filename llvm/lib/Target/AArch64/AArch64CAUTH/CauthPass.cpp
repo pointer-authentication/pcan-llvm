@@ -25,7 +25,8 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 // CAUTH includes
-#include "llvm/CAUTH/Cauth.h"
+//#include "llvm/CAUTH/Cauth.h"
+#include "CauthUtils.h"
 
 #define DEBUG_TYPE "aarch64-cauth"
 
@@ -46,23 +47,16 @@ namespace {
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
-   bool instrumentBranches(MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator &MIi);
-
-
-   void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr);
-
-   void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
-
-   void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
-                     unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
-
+   //void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, bool isMod);
 
  private:
-   const TargetMachine *TM = nullptr;
-   const AArch64Subtarget *STI = nullptr;
-   const AArch64InstrInfo *TII = nullptr;
-   const AArch64RegisterInfo *TRI = nullptr;
+    const TargetMachine *TM = nullptr;
+    const AArch64Subtarget *STI = nullptr;
+    const AArch64InstrInfo *TII = nullptr;
+    const AArch64RegisterInfo *TRI = nullptr;
+
+    CauthUtils_ptr cauthUtils_ptr = nullptr;
+
  };
 } // end anonymous namespace
 
@@ -82,7 +76,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
-  //partsUtils = PartsUtils::get(TRI, TII);
+  cauthUtils_ptr = CauthUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
     //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
@@ -99,7 +93,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
-          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACGA);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, false);
           found = true; 
           break;
         }
@@ -108,7 +102,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
-          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::PACDZA);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDZA, false);
           break;
         }
         case AArch64::CAUTH_AUTDZA:
@@ -116,7 +110,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
           auto &MI = *MIi--;
-          CauthPass::convertCauthIntrinsic(MBB, MI, AArch64::AUTDZA);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDZA, false);
           found = true; // make sure we return true when we modify stuff
 
           break;
@@ -130,7 +124,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
 }
 
 
-void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
+/*void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
@@ -145,7 +139,7 @@ void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, 
     //unsigned mod = MI.getOperand(2).getReg();
     // Save the mod register if it is marked as killable!
     // Move the pointer to destination register
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+    //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
     insertPAInstr(MBB, &MI, dst, 0, TII->get(instr), DL);
   }
   // And finally, remove the intrinsic
@@ -168,4 +162,5 @@ void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigne
     } else {
       BuildMI(MBB, MIi, DL, MCID, ptrReg);
     }
-}
+}*/
+
