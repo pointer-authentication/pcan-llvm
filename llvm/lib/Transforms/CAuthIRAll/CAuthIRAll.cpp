@@ -25,7 +25,7 @@
 using namespace llvm;
 using namespace CAUTH;
 
-#define DEBUG_TYPE "cauth-ir:\t"
+#define DEBUG_TYPE "cauth-ir-all:\t"
 
 
 
@@ -65,9 +65,6 @@ namespace {
           //errs() << DEBUG_TYPE;
           //I->dump();
           if(isa<AllocaInst>(*I)){
-             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
-            if(aI->getAllocatedType()->isArrayTy()){
-
               loc = I->getNextNode();
               IRBuilder<> Builder(loc);
 
@@ -97,7 +94,6 @@ namespace {
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
               ++I;
-            }
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){
             Instruction *inst= &*I;
@@ -138,7 +134,7 @@ namespace {
 }
 
 char CAuthIR::ID = 0;
-static RegisterPass<CAuthIR> X("cauth-ir", "CAuth IR Pass");
+static RegisterPass<CAuthIR> X("cauth-ir-all", "CAuth IR Pass");
 
 BasicBlock* CAuthIR::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
   return llvm::BasicBlock::Create(C, Name, Parent, InsertBefore);

@@ -15,7 +15,11 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
+
+#include <llvm/CAUTH/CauthIntr.h>
+
 using namespace llvm;
+using namespace CAUTH;
 
 #define DEBUG_TYPE "test"
 
@@ -23,28 +27,37 @@ STATISTIC(TestCounter, "Counts number of functions greeted");
 
 namespace {
   struct Test : public FunctionPass {
-    static char ID; // Pass identification, replacement for typeid
+    // Pass identification, replacement for typeid
+    static char ID;
     Test() : FunctionPass(ID) {}
 
     bool runOnFunction(Function &F) override {
-      Instruction *loc = nullptr;
-      auto &C = F.getParent()->getContext();  //Get current context
-      AllocaInst* arr_alloc = nullptr;
+      //Get current context
+      auto &C = F.getParent()->getContext();  
+      errs()<<"Function Name: ";
       errs().write_escaped(F.getName()) << '\n';  //Print function name
       for (auto &BB : F){
+        errs()<<"Basic Block: ";
         errs().write_escaped(BB.getName()) << '\n';  //Print Basic block's name
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
-          I->dump();  //Dump instruction
-          if(isa<AllocaInst>(*I))  //Check if an alloca instruction is encountered
-          {  
-            if(I->getName().find("test_alloc") == std::string::npos && I->getName() != "retval"){
-              loc = I->getNextNode();  //Get instruction location
-              IRBuilder<> Builder(loc);  //Create a builder
+          //I->dump();  //Dump instruction
+          //Check if an alloca instruction is encountered
+          if(isa<AllocaInst>(*I))  
+          {   //Get instruction location
+              llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
+              if (aI->getAllocatedType()->isArrayTy())
+              {
+              Instruction *loc = I->getNextNode();  
+               //Create a builder
+              IRBuilder<> Builder(loc); 
               auto buffTy = Type::getInt64Ty(C);
-              arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "test_alloc");  //Insert alloca instruction with name test_alloc
+              //Insert alloca instruction with name test_alloc
+              AllocaInst* arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "test_alloc");  
+              ++I;
             }
           }
         }
+       // BB.dump();
       }
       return false;
     }

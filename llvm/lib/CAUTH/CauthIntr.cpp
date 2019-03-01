@@ -24,9 +24,9 @@ Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool ha
   auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacga : Intrinsic::ca_pacgza));
   Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,1000));
   if (hasMod){
-    Value *hasModifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-    // Create the arguments for the intrinsic call (i.e., original value + hasModifier)
-    Value *args[] { src, hasModifier };
+    Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+    // Create the arguments for the intrinsic call (i.e., original value + modifier)
+    Value *args[] { src, modifier };
     return builder->CreateCall(pacIntr, args, name);
   }
   else{
@@ -48,9 +48,9 @@ Value *CauthIntr::pacda(IRBuilder<> *builder, Module &M, Value *V, bool hasMod, 
   Type *arg_types[] = { V->getType() };
   auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacda : Intrinsic::ca_pacdza), arg_types);
   if (hasMod){
-    Value *hasModifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-    // Create the arguments for the intrinsic call (i.e., original pointer + hasModifier)
-    Value *args[] { V, hasModifier };
+    Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+    // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
+    Value *args[] { V, modifier };
     return builder->CreateCall(pacIntr, args, name);
   }
   else{
@@ -72,9 +72,9 @@ Value *CauthIntr::autda(IRBuilder<> *builder, Module &M, Value *V, bool hasMod, 
   auto autIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_autda : Intrinsic::ca_autdza), arg_types);
 
  if (hasMod){
-    Value *hasModifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-    // Create the arguments for the intrinsic call (i.e., original pointer + hasModifier)
-    Value *args[] { V, hasModifier };
+    Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+    // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
+    Value *args[] { V, modifier };
     return builder->CreateCall(autIntr, args, name);
   }
   else{

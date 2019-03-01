@@ -66,8 +66,6 @@ namespace {
           //I->dump();
           if(isa<AllocaInst>(*I)){
             //llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
-            if(I->getName().find("cauth_alloc") == std::string::npos && I->getName() != "retval"){
-
               loc = I->getNextNode();
               IRBuilder<> Builder(loc);
 
@@ -96,7 +94,7 @@ namespace {
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
-            }
+            ++I;
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){
             Instruction *inst= &*I;

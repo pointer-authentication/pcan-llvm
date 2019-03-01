@@ -46,6 +46,8 @@ namespace {
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
+ private:
+   const TargetInstrInfo *TII;
  };
 } // end anonymous namespace
 
@@ -66,6 +68,26 @@ bool TestPass::runOnMachineFunction(MachineFunction &MF) {
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       //errs()<< MBB.getName() << "\n";
       MIi->dump();
+       const auto MIOpcode = MIi->getOpcode();
+      //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
+      
+      switch(MIOpcode) {
+        default:
+          break;
+        case AArch64::CAUTH_PACGZA:
+        { 
+          //errs()<<"\nInside CAUTH_PACGA Case\n";
+          auto &MI = *MIi--;
+          const auto &DL = MI.getDebugLoc();
+          const unsigned dst = MI.getOperand(0).getReg();
+          const unsigned src = MI.getOperand(1).getReg();
+          unsigned mod = AArch64::SP;
+          BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
+          MI.removeFromParent();
+          
+          break;
+        }
+      }
     }
      // MBB.dump();
   }
