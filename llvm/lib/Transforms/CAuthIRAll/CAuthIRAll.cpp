@@ -65,7 +65,8 @@ namespace {
           //errs() << DEBUG_TYPE;
           //I->dump();
           if(isa<AllocaInst>(*I)){
-              loc = I->getNextNode();
+              
+              loc = &*I; //->getNextNode();
               IRBuilder<> Builder(loc);
 
               unsigned i = 0;

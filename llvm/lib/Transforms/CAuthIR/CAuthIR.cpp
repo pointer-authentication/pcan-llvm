@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <llvm/CAUTH/CauthIntr.h>
+#include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -27,7 +28,10 @@ using namespace CAUTH;
 
 #define DEBUG_TYPE "cauth-ir:\t"
 
-
+STATISTIC(TotalFunctionCounter, "Total number of functions in code");
+STATISTIC(FunctionCounter, "number of functions instrumented");
+STATISTIC(ArrayBuffCounter, "number of array buffers instrumented");
+STATISTIC(TotalBuffCounter, "number of total buffers instrumented");
 
 //FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
 
@@ -44,9 +48,11 @@ namespace {
     void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret);
 
     bool runOnFunction(Function &F) override {
+      ++TotalFunctionCounter;
       //errs() << DEBUG_TYPE;
       //errs().write_escaped(F.getName()) << '\n';
       unsigned numBuffs = 0;
+      bool isFirstAlloc = false;
       Value* oldcbuff = nullptr;
       Instruction *loc = nullptr;
       auto &C = F.getParent()->getContext();
@@ -65,11 +71,26 @@ namespace {
           //errs() << DEBUG_TYPE;
           //I->dump();
           if(isa<AllocaInst>(*I)){
-             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
-            if(aI->getAllocatedType()->isArrayTy()){
+            llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
+            isFirstAlloc = false;
+            loc = &*I; 
+            IRBuilder<> Builder(loc);
+            unsigned i = 0;
+            Type* tmp = nullptr;
+            buffTy = Type::getInt64Ty(C);
 
-              loc = I->getNextNode();
-              IRBuilder<> Builder(loc);
+              if (numBuffs==0){
+                arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
+                ++numBuffs;
+                ++TotalBuffCounter;
+                ++FunctionCounter;
+                isFirstAlloc = true;
+                pacga_instr = CauthIntr::pacga(F, *loc, false);
+                oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
+                Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);                
+              }
+
+            if(aI->getAllocatedType()->isArrayTy()){
 
               unsigned i = 0;
               Type* tmp = nullptr;
@@ -83,20 +104,16 @@ namespace {
                 i++;
               }
 
-              arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
-              ++numBuffs;
-              
-              if (numBuffs==1){
-                pacga_instr = CauthIntr::pacga(F, *loc, false);
-                oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
-                Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
-              }
-              else if (numBuffs>1){
+              if (numBuffs>=1 && !isFirstAlloc){
+                arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
+                ++numBuffs;
+                ++TotalBuffCounter;
+                ++ArrayBuffCounter;
                 pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, false);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
-              ++I;
+              //++I;
             }
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){

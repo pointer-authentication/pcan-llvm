@@ -13,6 +13,7 @@
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
@@ -47,7 +48,7 @@ namespace {
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
  private:
-   const TargetInstrInfo *TII;
+   //const TargetInstrInfo *TII;
  };
 } // end anonymous namespace
 
@@ -62,34 +63,26 @@ bool TestPass::doInitialization(Module &M) {
 }
 
 bool TestPass::runOnMachineFunction(MachineFunction &MF) {
-  
   for (auto &MBB : MF) {
     errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      //errs()<< MBB.getName() << "\n";
       MIi->dump();
-       const auto MIOpcode = MIi->getOpcode();
-      //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
-      
+      const auto MIOpcode = MIi->getOpcode();     
       switch(MIOpcode) {
         default:
           break;
-        case AArch64::CAUTH_PACGZA:
+        case AArch64::STRXpre:
         { 
-          //errs()<<"\nInside CAUTH_PACGA Case\n";
-          auto &MI = *MIi--;
-          const auto &DL = MI.getDebugLoc();
-          const unsigned dst = MI.getOperand(0).getReg();
-          const unsigned src = MI.getOperand(1).getReg();
-          unsigned mod = AArch64::SP;
-          BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
-          MI.removeFromParent();
-          
+          errs()<<"Opcode:\t"<<MIOpcode<<"\n";
+          break;
+        }
+        case AArch64::STPWi:
+        { 
+          errs()<<"Opcode:\t"<<MIOpcode<<"\n";
           break;
         }
       }
     }
-     // MBB.dump();
   }
 
   return true;
