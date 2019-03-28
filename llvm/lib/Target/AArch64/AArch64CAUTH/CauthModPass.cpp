@@ -76,10 +76,10 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
   cauthUtils_ptr = CauthUtils::get(TRI, TII);
 
   for (auto &MBB : MF) {
-    //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
+    errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
       //errs()<< MBB.getName() << "\n";
-      //MIi->dump();
+      MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
       //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
 

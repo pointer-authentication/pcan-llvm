@@ -46,15 +46,18 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
   	}
   }
   else if (instr==AArch64::PACDA || instr==AArch64::AUTDA){
-  	mod = MI.getOperand(2).getReg();
+  	/*mod = MI.getOperand(2).getReg();
     // Save the mod register if it is marked as killable!
     if (MI.getOperand(2).isKill()) {
       unsigned oldMod = mod;
       mod = AArch64::X24;
       BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
     }
-    // Move the pointer to destination register
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+    // Move the pointer to destination register*/
+    mod = AArch64::SP;
+    if (instr==AArch64::PACDA){
+      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
+    }
     insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL, hasMod);
   }
   else if (instr==AArch64::PACDZA || instr==AArch64::AUTDZA){

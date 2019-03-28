@@ -109,7 +109,7 @@ namespace {
                 ++numBuffs;
                 ++TotalBuffCounter;
                 ++ArrayBuffCounter;
-                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, false);
+                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, true);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
@@ -134,7 +134,7 @@ namespace {
                 tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, false);
+              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, true);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
