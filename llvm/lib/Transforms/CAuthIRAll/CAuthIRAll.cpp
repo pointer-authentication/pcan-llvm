@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <llvm/CAUTH/CauthIntr.h>
+#include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -27,6 +28,9 @@ using namespace CAUTH;
 
 #define DEBUG_TYPE "cauth-ir-all:\t"
 
+STATISTIC(TotalFunctionCounter, "Total number of functions in code");
+STATISTIC(FunctionCounter, "number of functions instrumented");
+STATISTIC(VarCounter, "number of local variables instrumented");
 
 
 //FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
@@ -46,6 +50,7 @@ namespace {
     bool runOnFunction(Function &F) override {
       //errs() << DEBUG_TYPE;
       //errs().write_escaped(F.getName()) << '\n';
+      ++TotalFunctionCounter;
       unsigned numBuffs = 0;
       Value* oldcbuff = nullptr;
       Instruction *loc = nullptr;
@@ -60,12 +65,15 @@ namespace {
       AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
          
-        //for (auto &I : BB){
+        //errs() << BB.getName()<< "\n";
+
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
           //errs() << DEBUG_TYPE;
-          //I->dump();
-          if(isa<AllocaInst>(*I)){
-              
+          
+          //BB.getName().find("if") == std::string::npos
+
+          if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
+              ++VarCounter;
               loc = &*I; //->getNextNode();
               IRBuilder<> Builder(loc);
 
@@ -85,16 +93,16 @@ namespace {
               ++numBuffs;
               
               if (numBuffs==1){
-                pacga_instr = CauthIntr::pacga(F, *loc, false);
+                ++FunctionCounter;
+                pacga_instr = CauthIntr::pacga(F, *loc, true);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
               }
               else if (numBuffs>1){
-                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, false);
+                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, true);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
-              ++I;
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){
             Instruction *inst= &*I;
@@ -103,7 +111,7 @@ namespace {
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
-                auto pacga2_instr = CauthIntr::pacga(F, *I, false);
+                auto pacga2_instr = CauthIntr::pacga(F, *I, true);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
                 TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
                 FalseBB= CAuthIR::CreateEmptyBB(C, "FalseBB", &F);
@@ -114,11 +122,12 @@ namespace {
                 tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, false);
+              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, true);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
           }
+          
         }
         
          if (BB.getName()=="TrueBB"){
@@ -127,7 +136,7 @@ namespace {
           }else if (BB.getName()=="FalseBB"){
             CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
           }
-         //BB.dump();
+           BB.dump();
       }
       return true; 
     }
@@ -151,6 +160,12 @@ void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Val
   B.CreateCall(printfFunc, {arg}, "printfCall");
   //B.CreateUnreachable();
   //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
+
+  Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
+  FunctionType *fType = FunctionType::get(Type::getVoidTy(M->getContext()), Type::getInt32Ty(M->getContext()), false);
+  Constant *exitF = M->getOrInsertFunction("exit", fType);
+  B.CreateCall(exitF,one);
+
   llvm::ReturnInst::Create(C, save_ret, FalseBB);
 
 }

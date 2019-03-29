@@ -171,6 +171,12 @@ void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Val
   B.CreateCall(printfFunc, {arg}, "printfCall");
   //B.CreateUnreachable();
   //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
+  
+  Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
+  FunctionType *fType = FunctionType::get(Type::getVoidTy(M->getContext()), Type::getInt32Ty(M->getContext()), false);
+  Constant *exitF = M->getOrInsertFunction("exit", fType);
+  B.CreateCall(exitF,one);
+
   llvm::ReturnInst::Create(C, save_ret, FalseBB);
 
 }

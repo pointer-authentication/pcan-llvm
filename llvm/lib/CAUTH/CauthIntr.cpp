@@ -11,6 +11,7 @@
 //#include <llvm/CAUTH/CauthIntr.h>
 
 #include "llvm/CAUTH/CauthIntr.h"
+#include <llvm/IR/Constants.h>
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 
@@ -21,12 +22,13 @@ Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool ha
   
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
-  auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacga : Intrinsic::ca_pacgza));
+  auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacgza : Intrinsic::ca_pacgza));
   Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,1000));
   if (hasMod){
-    Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+    //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+    
     // Create the arguments for the intrinsic call (i.e., original value + modifier)
-    Value *args[] { src, modifier };
+    Value *args[] { src };
     return builder->CreateCall(pacIntr, args, name);
   }
   else{

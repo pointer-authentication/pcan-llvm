@@ -27,13 +27,13 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
 
   if (instr==AArch64::PACGA){
   	if (hasMod){
-	  mod = MI.getOperand(2).getReg();
+	  mod = AArch64::SP; //MI.getOperand(2).getReg();
       // Save the mod register if it is marked as killable!
-      if (MI.getOperand(2).isKill()) {
+      /*if (MI.getOperand(2).isKill()) {
         unsigned oldMod = mod;
         mod = AArch64::X24;
         BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-      }
+      }*/
   	}
   	else{
   	  mod = AArch64::SP;
@@ -101,21 +101,26 @@ void CauthUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrR
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(37);
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(97);
     if (hasMod){
-      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
-	}
+      /*BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), AArch64::X24).addReg(modReg).addImm(0).addImm(0);
+      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(AArch64::X24).addImm(0);*/
+      
+      BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(117); 
+    }
 	else{
 	  BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(117);	
-	}
+	  }
   } else {
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
     if (hasMod){
-      BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs), ptrReg).addReg(ptrReg).addReg(modReg).addImm(0);
-	}
+      BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(117);
+      /*BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), AArch64::X24).addReg(modReg).addImm(0).addImm(0);
+      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(AArch64::X24).addImm(0);*/
+  	}
 	else{
 	  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(117);
-	}
+	  }
   }
 }
 

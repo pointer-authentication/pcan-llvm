@@ -92,7 +92,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, false);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true);
           found = true; 
           break;
         }
