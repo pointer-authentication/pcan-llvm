@@ -155,7 +155,7 @@ namespace {
 }
 
 char CAuthIR::ID = 0;
-static RegisterPass<CAuthIR> X("cauth-ir", "CAuth IR Pass");
+static RegisterPass<CAuthIR> X("cauth-ir-standalone", "CAuth IR standalone pass");
 
 BasicBlock* CAuthIR::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
   return llvm::BasicBlock::Create(C, Name, Parent, InsertBefore);
@@ -173,7 +173,7 @@ void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Val
   //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
   
   Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
-  FunctionType *fType = FunctionType::get(Type::getVoidTy(M->getContext()), Type::getInt32Ty(M->getContext()), false);
+  FunctionType *fType = FunctionType::get(Type::getVoidTy(C), Type::getInt32Ty(C), false);
   Constant *exitF = M->getOrInsertFunction("exit", fType);
   B.CreateCall(exitF,one);
 

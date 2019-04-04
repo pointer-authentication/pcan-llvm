@@ -25,20 +25,20 @@
 using namespace llvm;
 using namespace CAUTH;
 
-#define DEBUG_TYPE "cauth-ir-mod:\t"
+#define DEBUG_TYPE "cauth-ir:\t"
 
 
 
-//FunctionPass *llvm::createCauthIRModPass() { return new CauthIRMod(); }
+//FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
 
 namespace {
-  // CauthIRMod - 
-  struct CauthIRMod : public FunctionPass {
+  // CAuthIR - 
+  struct CAuthIR : public FunctionPass {
     
   public:
     static char ID; // Pass identification
   
-    CauthIRMod() : FunctionPass(ID) {}
+    CAuthIR() : FunctionPass(ID) {}
     BasicBlock* CreateEmptyBB(LLVMContext &C, const Twine &Name="", 
                               Function *Parent=nullptr, BasicBlock *InsertBefore=nullptr );
     void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret);
@@ -62,11 +62,14 @@ namespace {
          
         //for (auto &I : BB){
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
-          //errs() << DEBUG_TYPE;
-          //I->dump();
+          errs() << DEBUG_TYPE;
+          I->dump();
           if(isa<AllocaInst>(*I)){
-            //llvm::AllocaInst* aI = dyn_cast<llvm::AllocaInst>(&I);
-              loc = I->getNextNode();
+             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
+            
+            if(aI->getAllocatedType()->isArrayTy()){
+
+              loc = &*I; //->getNextNode();
               IRBuilder<> Builder(loc);
 
               unsigned i = 0;
@@ -85,16 +88,17 @@ namespace {
               ++numBuffs;
               
               if (numBuffs==1){
-                pacga_instr = CauthIntr::pacga(F, *loc, true);
+                pacga_instr = CauthIntr::pacga(F, *loc, false);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
               }
               else if (numBuffs>1){
-                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, true);
+                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, false);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
-            ++I;
+              //++I;
+            }
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){
             Instruction *inst= &*I;
@@ -103,10 +107,10 @@ namespace {
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
-                auto pacga2_instr = CauthIntr::pacga(F, *I, true);
+                auto pacga2_instr = CauthIntr::pacga(F, *I, false);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
-                TrueBB= CauthIRMod::CreateEmptyBB(C, "TrueBB", &F);
-                FalseBB= CauthIRMod::CreateEmptyBB(C, "FalseBB", &F);
+                TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
+                FalseBB= CAuthIR::CreateEmptyBB(C, "FalseBB", &F);
                 Builder.CreateCondBr(cmp, TrueBB, FalseBB);
                 save_ret = rI->getReturnValue();
                 auto tmp = I;
@@ -114,7 +118,7 @@ namespace {
                 tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, true);
+              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, false);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
@@ -125,24 +129,24 @@ namespace {
             //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
             llvm::ReturnInst::Create(C, save_ret, TrueBB);
           }else if (BB.getName()=="FalseBB"){
-            CauthIRMod::CreateFailBB(C, &F, FalseBB, save_ret);
+            CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
           }
-         //BB.dump();
+         BB.dump();
       }
       return true; 
     }
   };
 }
 
-char CauthIRMod::ID = 0;
-static RegisterPass<CauthIRMod> X("cauth-ir-mod", "CAuth IR Pass with custom modifiers");
+char CAuthIR::ID = 0;
+static RegisterPass<CAuthIR> X("cauth-ir-arrays", "CAuth IR pass for protecting arrays");
 
-BasicBlock* CauthIRMod::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
+BasicBlock* CAuthIR::CreateEmptyBB(LLVMContext &C, const Twine &Name, Function *Parent, BasicBlock *InsertBefore){
   return llvm::BasicBlock::Create(C, Name, Parent, InsertBefore);
 }
 
 //Inserts canary_chk_fail instructions into the FalseBB
-void CauthIRMod::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret){
+void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret){
   IRBuilder<> B(FalseBB);
   Module* M = F->getParent();
   auto arg = B.CreateGlobalString("\n***Canary Check Failed***\nExiting....\n\n", "__canary_chk_fail");

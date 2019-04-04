@@ -24,23 +24,16 @@ Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool ha
   Type *arg_types[] = { Type::getInt64Ty(C) };
   auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacgza : Intrinsic::ca_pacgza));
   Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,1000));
-  if (hasMod){
-    //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-    
-    // Create the arguments for the intrinsic call (i.e., original value + modifier)
-    Value *args[] { src };
-    return builder->CreateCall(pacIntr, args, name);
-  }
-  else{
-    Value *args[] { src };
-    return builder->CreateCall(pacIntr, args, name);
-  }
+  Value *args[] { src };
+  return builder->CreateCall(pacIntr, args, name);
+
 }
 
 Value *CauthIntr::pacga(Function &F, Instruction &I, bool hasMod,const std::string &name) {
   // insert the call
   IRBuilder<> Builder(&I);
   return pacga(&Builder, *F.getParent(), I, hasMod, name);
+  
 }
 
 
