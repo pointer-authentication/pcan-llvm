@@ -30,7 +30,7 @@ using namespace CAUTH;
 
 STATISTIC(TotalFunctionCounter, "Total number of functions in code");
 STATISTIC(FunctionCounter, "number of functions instrumented");
-STATISTIC(VarCounter, "number of local variables instrumented");
+STATISTIC(VarCounter, "Total number of local variables instrumented");
 
 
 //FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
@@ -71,10 +71,10 @@ namespace {
 
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
           //errs() << DEBUG_TYPE;
-          
+          //I->dump();
           //BB.getName().find("if") == std::string::npos
 
-          if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
+          if(isa<AllocaInst>(*I)) { //&& BB.getName()=="entry"){
               ++VarCounter;
               loc = &*I; //->getNextNode();
               IRBuilder<> Builder(loc);
@@ -128,8 +128,7 @@ namespace {
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }
-          }
-          
+          }         
         }
         
          if (BB.getName()=="TrueBB"){
@@ -138,8 +137,8 @@ namespace {
           }else if (BB.getName()=="FalseBB"){
             CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
           }
-          // BB.dump();
-      }
+           //BB.dump();
+        }
       return true; 
     }
   };

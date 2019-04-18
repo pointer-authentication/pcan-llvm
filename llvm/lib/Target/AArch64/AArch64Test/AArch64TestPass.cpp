@@ -64,9 +64,9 @@ bool TestPass::doInitialization(Module &M) {
 
 bool TestPass::runOnMachineFunction(MachineFunction &MF) {
   for (auto &MBB : MF) {
-    errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
+    //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      MIi->dump();
+      //MIi->dump();
       const auto MIOpcode = MIi->getOpcode();     
       switch(MIOpcode) {
         default:

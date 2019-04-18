@@ -16,6 +16,12 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 
+#include "llvm/Analysis/DominanceFrontier.h"
+#include "llvm/Analysis/IteratedDominanceFrontier.h"
+#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/PostDominators.h"
+
+
 #include <llvm/CAUTH/CauthIntr.h>
 
 using namespace llvm;
@@ -34,19 +40,22 @@ namespace {
     bool runOnFunction(Function &F) override {
       //Get current context
       auto &C = F.getParent()->getContext();  
-      errs()<<"Function Name: ";
+      DominatorTree DT = DominatorTree(F);
+      
+      llvm::AllocaInst *aI = nullptr;
+      //errs()<<"Function Name: ";
       errs().write_escaped(F.getName()) << '\n';  //Print function name
       for (auto &BB : F){
+        unsigned numBuffs = 0;
         errs()<<"Basic Block: ";
         errs().write_escaped(BB.getName()) << '\n';  //Print Basic block's name
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
           //I->dump();  //Dump instruction
           //Check if an alloca instruction is encountered
-          if(isa<AllocaInst>(*I))  
-          {   //Get instruction location
-              llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
-              if (aI->getAllocatedType()->isArrayTy())
-              {
+          if(isa<AllocaInst>(*I)) {   //Get instruction location
+              ++numBuffs;
+              aI = dyn_cast<llvm::AllocaInst>(&*I);
+             /* if (aI->getAllocatedType()->isArrayTy()){
               Instruction *loc = I->getNextNode();  
                //Create a builder
               IRBuilder<> Builder(loc); 
@@ -54,10 +63,60 @@ namespace {
               //Insert alloca instruction with name test_alloc
               AllocaInst* arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "test_alloc");  
               ++I;
-            }
+            }*/
           }
         }
-       // BB.dump();
+        if (numBuffs>0){
+          
+          for (auto &BBC : F) {
+
+            auto dom=DT.dominates(&BB, &BBC);
+            if (dom){
+            //errs()<<"Node: "<<BB.getName()<<" dominates "<<BBC.getName()<<"\n";
+            }else{
+            //errs()<<"Node: "<<BB.getName()<<" doesn't dominate "<<BBC.getName()<<"\n";
+            }
+          }
+           
+            
+           
+           // DefiningBlocks.insert(&BB);
+           //auto DF = DominanceFrontierBase<DefiningBlocks, false>();
+           //DF.dump();
+            DominatorTree *D;
+            ForwardIDFCalculator IDFs(*D);
+            SmallPtrSet<BasicBlock *, 32> DefiningBlocks;
+            DefiningBlocks.insert(&BB);
+            IDFs.setDefiningBlocks(DefiningBlocks);
+            
+            //DefiningBlocks.push_back(SI->getParent());
+            SmallVector<BasicBlock *, 32> IDFBlocks;
+            errs()<<IDFBlocks.size()<<"\n";
+            IDFs.calculate(IDFBlocks);
+            errs()<<IDFBlocks.size()<<"\n";
+            for (auto &IDBB : IDFBlocks){
+              errs()<<"Forward IDFs for "<<BB.getName()<<"\n";
+                errs().write_escaped(IDBB->getName())<<"\n";
+            }
+
+           /* PostDominatorTree *PD;
+            ReverseIDFCalculator RIDFs(*PD);
+            RIDFs.setDefiningBlocks(DefiningBlocks);
+            SmallVector<BasicBlock *, 32> RIDFBlocks;
+            RIDFs.calculate(RIDFBlocks);
+            
+            for (auto &IDBB : RIDFBlocks){
+              errs()<<"Reverse IDFs for "<<BB.getName()<<"\n";
+                errs().write_escaped(IDBB->getName())<<"\n";
+            }*/
+
+            //auto idf = IDFCalculator<ty, false>(&DT);
+            //idf.calculate(BB);
+            //BasicBlock *BB = /* some BB */;
+            //DominanceFrontier::iterator DFI = DF->find(BB);
+         
+        }
+        //BB.dump();
       }
       return false;
     }

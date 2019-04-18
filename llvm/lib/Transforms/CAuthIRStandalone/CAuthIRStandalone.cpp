@@ -31,7 +31,7 @@ using namespace CAUTH;
 STATISTIC(TotalFunctionCounter, "Total number of functions in code");
 STATISTIC(FunctionCounter, "number of functions instrumented");
 STATISTIC(ArrayBuffCounter, "number of array buffers instrumented");
-STATISTIC(TotalBuffCounter, "number of total buffers instrumented");
+STATISTIC(TotalBuffCounter, "Total number of buffers instrumented");
 
 //FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
 
