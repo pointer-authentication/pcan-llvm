@@ -57,6 +57,8 @@ namespace {
 
     CauthUtils_ptr cauthUtils_ptr = nullptr;
 
+    unsigned funcID=0;
+
  };
 } // end anonymous namespace
 
@@ -72,6 +74,7 @@ bool CauthPass::doInitialization(Module &M) {
 
 bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
+  ++funcID;
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
@@ -81,7 +84,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   for (auto &MBB : MF) {
     //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      //MIi->dump();
+      MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
       //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
 
@@ -92,7 +95,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true, funcID);
           found = true; 
           break;
         }
@@ -101,7 +104,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true, funcID);
           break;
         }
         case AArch64::CAUTH_AUTDA:
@@ -109,7 +112,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, true);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, true, funcID);
           found = true; // make sure we return true when we modify stuff
 
           break;

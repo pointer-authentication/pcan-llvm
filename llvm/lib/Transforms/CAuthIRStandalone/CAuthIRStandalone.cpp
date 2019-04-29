@@ -41,7 +41,8 @@ namespace {
     
   public:
     static char ID; // Pass identification
-  
+    unsigned funcID=0; 
+
     CAuthIR() : FunctionPass(ID) {}
     BasicBlock* CreateEmptyBB(LLVMContext &C, const Twine &Name="", 
                               Function *Parent=nullptr, BasicBlock *InsertBefore=nullptr );
@@ -49,6 +50,7 @@ namespace {
 
     bool runOnFunction(Function &F) override {
       ++TotalFunctionCounter;
+      ++funcID;
       //errs() << DEBUG_TYPE;
       //errs().write_escaped(F.getName()) << '\n';
       unsigned numBuffs = 0;
@@ -70,7 +72,8 @@ namespace {
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
           //errs() << DEBUG_TYPE;
           //I->dump();
-          if(isa<AllocaInst>(*I)){
+          if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
+            
             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
             isFirstAlloc = false;
             loc = &*I; 
@@ -85,7 +88,7 @@ namespace {
                 ++TotalBuffCounter;
                 ++FunctionCounter;
                 isFirstAlloc = true;
-                pacga_instr = CauthIntr::pacga(F, *loc, false);
+                pacga_instr = CauthIntr::pacga(F, *loc, false, funcID);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);                
               }
@@ -123,7 +126,7 @@ namespace {
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
-                auto pacga2_instr = CauthIntr::pacga(F, *I, false);
+                auto pacga2_instr = CauthIntr::pacga(F, *I, false, funcID);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
                 TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
                 FalseBB= CAuthIR::CreateEmptyBB(C, "FalseBB", &F);

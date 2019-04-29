@@ -21,6 +21,7 @@
 #include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 
+#include <queue>
 
 #include <llvm/CAUTH/CauthIntr.h>
 
@@ -46,6 +47,7 @@ namespace {
       //errs()<<"Function Name: ";
       errs().write_escaped(F.getName()) << '\n';  //Print function name
       for (auto &BB : F){
+        ++TestCounter;
         unsigned numBuffs = 0;
         errs()<<"Basic Block: ";
         errs().write_escaped(BB.getName()) << '\n';  //Print Basic block's name
@@ -67,7 +69,7 @@ namespace {
           }
         }
         if (numBuffs>0){
-          
+         // if (BB.getName()!="entry"){
           for (auto &BBC : F) {
 
             auto dom=DT.dominates(&BB, &BBC);
@@ -86,14 +88,30 @@ namespace {
             DominatorTree *D;
             ForwardIDFCalculator IDFs(*D);
             SmallPtrSet<BasicBlock *, 32> DefiningBlocks;
+            
             DefiningBlocks.insert(&BB);
+            //DomTreeNode *dtn = DT.getNode(&BB);
+            //errs()<<dtn;
             IDFs.setDefiningBlocks(DefiningBlocks);
+
+            /*typedef std::pair<DomTreeNode *, unsigned> DomTreeNodePair;
+            typedef std::priority_queue<DomTreeNodePair, SmallVector<DomTreeNodePair, 32>,
+                              less_second> IDFPriorityQueue;
+            IDFPriorityQueue PQ;
+            for (BasicBlock *BB : DefiningBlocks) {
+            if (DomTreeNode *Node = DT.getNode(BB))
+              PQ.push({Node, Node->getLevel()});
+              errs()<<"PQ populated";
+            }*/
+            
+            
             
             //DefiningBlocks.push_back(SI->getParent());
             SmallVector<BasicBlock *, 32> IDFBlocks;
             errs()<<IDFBlocks.size()<<"\n";
             IDFs.calculate(IDFBlocks);
             errs()<<IDFBlocks.size()<<"\n";
+            
             for (auto &IDBB : IDFBlocks){
               errs()<<"Forward IDFs for "<<BB.getName()<<"\n";
                 errs().write_escaped(IDBB->getName())<<"\n";

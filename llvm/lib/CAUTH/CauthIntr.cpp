@@ -18,21 +18,21 @@
 using namespace llvm;
 using namespace llvm::CAUTH;
 
-Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool hasMod, const std::string &name) {
+Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool hasMod, unsigned funcID, const std::string &name) {
   
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
   auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacgza : Intrinsic::ca_pacgza));
-  Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,1000));
+  Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,funcID));
   Value *args[] { src };
   return builder->CreateCall(pacIntr, args, name);
 
 }
 
-Value *CauthIntr::pacga(Function &F, Instruction &I, bool hasMod,const std::string &name) {
+Value *CauthIntr::pacga(Function &F, Instruction &I, bool hasMod, unsigned funcID, const std::string &name) {
   // insert the call
   IRBuilder<> Builder(&I);
-  return pacga(&Builder, *F.getParent(), I, hasMod, name);
+  return pacga(&Builder, *F.getParent(), I, hasMod, funcID, name);
   
 }
 

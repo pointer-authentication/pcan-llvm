@@ -19,7 +19,7 @@ CauthUtils::CauthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII
     TRI(TRI)
 {};
 
-void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, bool hasMod) {
+void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, bool hasMod, unsigned funcID) {
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
@@ -28,6 +28,8 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
   if (instr==AArch64::PACGA){
   	if (hasMod){
 	  mod = AArch64::SP; //MI.getOperand(2).getReg();
+    errs()<<funcID<<"\n";
+    errs()<<AArch64::SP<<"\n";
       // Save the mod register if it is marked as killable!
       /*if (MI.getOperand(2).isKill()) {
         unsigned oldMod = mod;

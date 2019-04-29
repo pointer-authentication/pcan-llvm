@@ -90,7 +90,7 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true);
+         // cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true);
           found = true; 
           break;
         }
@@ -99,7 +99,7 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true);
+         // cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true);
           break;
         }
         case AArch64::CAUTH_AUTDA:
@@ -107,7 +107,7 @@ bool CauthModPass::runOnMachineFunction(MachineFunction &MF) {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, true);
+         // cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, true);
           found = true; // make sure we return true when we modify stuff
 
           break;
