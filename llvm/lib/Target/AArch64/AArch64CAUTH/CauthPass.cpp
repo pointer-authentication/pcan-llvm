@@ -57,7 +57,7 @@ namespace {
 
     CauthUtils_ptr cauthUtils_ptr = nullptr;
 
-    unsigned funcID=0;
+    uint16_t funcID=0;
 
  };
 } // end anonymous namespace
@@ -81,10 +81,20 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   TRI = STI->getRegisterInfo();
   cauthUtils_ptr = CauthUtils::get(TRI, TII);
 
+  //Calling convention is default C (AAPCS) calling convention.
+  /*auto func = &MF.getFunction();
+  auto id = func->getCallingConv();
+  errs()<<id<<"\n"; 
+  if (id == CallingConv::C){ 
+    errs()<<"CallingConv is ";
+    errs()<<id<<"\n";  
+  }
+*/
+
   for (auto &MBB : MF) {
     //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      MIi->dump();
+      //MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
       //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
 
@@ -100,14 +110,14 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           break;
         }
         
-        case AArch64::CAUTH_PACDA:
+        case AArch64::CAUTH_PACDZA:
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
           auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true, funcID);
           break;
         }
-        case AArch64::CAUTH_AUTDA:
+        case AArch64::CAUTH_AUTDZA:
         {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
             
@@ -119,7 +129,9 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         }
       }
     }
+    if (MF.getName()=="init_lists_p_slice"){
      // MBB.dump();
+    }
   }
 
   return found;

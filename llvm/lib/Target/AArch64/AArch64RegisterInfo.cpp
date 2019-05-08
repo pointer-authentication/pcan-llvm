@@ -192,6 +192,8 @@ AArch64RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   markSuperRegs(Reserved, AArch64::WSP);
   markSuperRegs(Reserved, AArch64::WZR);
 
+  markSuperRegs(Reserved, AArch64::W9);
+
   if (TFI->hasFP(MF) || TT.isOSDarwin())
     markSuperRegs(Reserved, AArch64::W29);
 
@@ -216,14 +218,26 @@ bool AArch64RegisterInfo::isReservedReg(const MachineFunction &MF,
   return getReservedRegs(MF)[Reg];
 }
 
-bool AArch64RegisterInfo::isAnyArgRegReserved(const MachineFunction &MF) const {
-  // FIXME: Get the list of argument registers from TableGen.
-  static const MCPhysReg GPRArgRegs[] = { AArch64::X0, AArch64::X1, AArch64::X2,
-                                          AArch64::X3, AArch64::X4, AArch64::X5,
-                                          AArch64::X6, AArch64::X7 };
-  return std::any_of(std::begin(GPRArgRegs), std::end(GPRArgRegs),
-                     [this, &MF](MCPhysReg r){return isReservedReg(MF, r);});
-}
+  switch (Reg) {
+  default:
+    break;
+  case AArch64::SP:
+  case AArch64::XZR:
+  case AArch64::WSP:
+  case AArch64::WZR:
+  case AArch64::W9:
+  case AArch64::X9:
+    return true;
+  case AArch64::X18:
+  case AArch64::W18:
+    return MF.getSubtarget<AArch64Subtarget>().isX18Reserved();
+  case AArch64::FP:
+  case AArch64::W29:
+    return TFI->hasFP(MF) || TT.isOSDarwin();
+  case AArch64::W19:
+  case AArch64::X19:
+    return hasBasePointer(MF);
+  }
 
 void AArch64RegisterInfo::emitReservedArgRegCallError(
     const MachineFunction &MF) const {

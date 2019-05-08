@@ -70,7 +70,7 @@ namespace {
           //errs() << DEBUG_TYPE;
           //I->dump();
           if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
-            
+
              llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
             
             if(aI->getAllocatedType()->isArrayTy()){
@@ -97,13 +97,13 @@ namespace {
               
               
               if (numBuffs==1){
-                pacga_instr = CauthIntr::pacga(F, *loc, true, funcID);
+                pacga_instr = CauthIntr::pacga(F, *loc, funcID);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
                 ++FunctionCounter;
               }
               else if (numBuffs>1){
-                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff, true);
+                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
@@ -117,7 +117,7 @@ namespace {
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
-                auto pacga2_instr = CauthIntr::pacga(F, *I, true, funcID);
+                auto pacga2_instr = CauthIntr::pacga(F, *I, funcID);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
                 TrueBB= CAuthIRArrays::CreateEmptyBB(C, "TrueBB", &F);
                 FalseBB= CAuthIRArrays::CreateEmptyBB(C, "FalseBB", &F);
@@ -128,7 +128,7 @@ namespace {
                 tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, *I, canary_val, true);
+              Value* autda_instr = CauthIntr::autda(F, *I, canary_val);
               canary_val = Builder.CreateLoad(autda_instr);
               }
             }

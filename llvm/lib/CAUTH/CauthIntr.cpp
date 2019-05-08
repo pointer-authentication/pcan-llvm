@@ -18,68 +18,85 @@
 using namespace llvm;
 using namespace llvm::CAUTH;
 
-Value *CauthIntr::pacga(IRBuilder<> *builder, Module &M, Instruction &I, bool hasMod, unsigned funcID, const std::string &name) {
+Value *CauthIntr::pacga(IRBuilder<> *builder, 
+                        Module &M, 
+                        Instruction &I, 
+                        unsigned funcID, 
+                        const std::string &name) {
   
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
-  auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacgza : Intrinsic::ca_pacgza));
+  auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacgza);
   Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,funcID));
-  Value *args[] { src };
+  //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+  Value *args[] { src};
   return builder->CreateCall(pacIntr, args, name);
-
 }
 
-Value *CauthIntr::pacga(Function &F, Instruction &I, bool hasMod, unsigned funcID, const std::string &name) {
+Value *CauthIntr::pacga(Function &F, 
+                        Instruction &I,
+                        unsigned funcID, 
+                        const std::string &name) {
   // insert the call
   IRBuilder<> Builder(&I);
-  return pacga(&Builder, *F.getParent(), I, hasMod, funcID, name);
+  return pacga(&Builder, *F.getParent(), I, funcID, name);
   
 }
 
 
-Value *CauthIntr::pacda(IRBuilder<> *builder, Module &M, Value *V, bool hasMod, const std::string &name) {
+Value *CauthIntr::pacda(IRBuilder<> *builder, 
+                        Module &M, 
+                        Value *V, 
+                        const std::string &name) {
   
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
-  auto pacIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_pacda : Intrinsic::ca_pacdza), arg_types);
-  if (hasMod){
-    Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-    // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
-    Value *args[] { V, modifier };
-    return builder->CreateCall(pacIntr, args, name);
-  }
-  else{
+  auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacdza, arg_types);
+  //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+  // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
+  Value *args[] { V };
+  return builder->CreateCall(pacIntr, args, name);
+ 
+ /* else{
     Value *args[] { V };
     return builder->CreateCall(pacIntr, args, name);
-  }
+  }*/
 }
 
-Value *CauthIntr::pacda(Function &F, Instruction &I, Value *V, bool hasMod, const std::string &name) {
+Value *CauthIntr::pacda(Function &F, 
+                        Instruction &I, 
+                        Value *V,
+                        const std::string &name) {
   // insert the call
   IRBuilder<> Builder(&I);
-  return pacda(&Builder, *F.getParent(), V, hasMod, name);
+  return pacda(&Builder, *F.getParent(), V, name);
 }
 
-Value *CauthIntr::autda(IRBuilder<> *builder, Module &M, Value *V, bool hasMod, const std::string &name) {
+Value *CauthIntr::autda(IRBuilder<> *builder, 
+                        Module &M, 
+                        Value *V, 
+                        const std::string &name) {
+
   // Get the intrinsic declaration based on our specific pointer type
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
-  auto autIntr = Intrinsic::getDeclaration(&M, (hasMod ? Intrinsic::ca_autda : Intrinsic::ca_autdza), arg_types);
-
- if (hasMod){
-    Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-    // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
-    Value *args[] { V, modifier };
-    return builder->CreateCall(autIntr, args, name);
-  }
-  else{
+  auto autIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_autdza, arg_types);
+  //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
+  // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
+  Value *args[] { V };
+  return builder->CreateCall(autIntr, args, name);
+  
+  /*else{
     Value *args[] { V };
     return builder->CreateCall(autIntr, args, name);
-  }
+  }*/
 }
 
-Value *CauthIntr::autda(Function &F, Instruction &I, Value *V, bool hasMod, const std::string &name) {
+Value *CauthIntr::autda(Function &F, 
+                        Instruction &I, 
+                        Value *V, 
+                        const std::string &name) {
   // insert the call
   IRBuilder<> Builder(&I);
-  return autda(&Builder, *F.getParent(), V, hasMod, name);
+  return autda(&Builder, *F.getParent(), V, name);
 }

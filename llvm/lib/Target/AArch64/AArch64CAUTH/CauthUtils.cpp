@@ -23,23 +23,16 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
-  unsigned mod; 		//modifier register
-
-  if (instr==AArch64::PACGA){
-  	if (hasMod){
-	  mod = AArch64::SP; //MI.getOperand(2).getReg();
-    errs()<<funcID<<"\n";
-    errs()<<AArch64::SP<<"\n";
-      // Save the mod register if it is marked as killable!
-      /*if (MI.getOperand(2).isKill()) {
+  unsigned mod = AArch64::X9; //MI.getOperand(2).getReg();		//modifier register
+  /*if (MI.getOperand(2).isKill()) {
         unsigned oldMod = mod;
-        mod = AArch64::X24;
+        mod = AArch64::X26;
         BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-      }*/
-  	}
-  	else{
-  	  mod = AArch64::SP;
-  	}
+  }*/
+ 
+  if (instr==AArch64::PACGA){
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(AArch64::SP).addImm(0).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);
   	if (!CAUTH::useDummy()){
       BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
   	}
@@ -48,27 +41,14 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
   	}
   }
   else if (instr==AArch64::PACDA || instr==AArch64::AUTDA){
-  	/*mod = MI.getOperand(2).getReg();
-    // Save the mod register if it is marked as killable!
-    if (MI.getOperand(2).isKill()) {
-      unsigned oldMod = mod;
-      mod = AArch64::X24;
-      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
-    }
-    // Move the pointer to destination register*/
-    mod = AArch64::SP;
+    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(AArch64::SP).addImm(0).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);
     if (instr==AArch64::PACDA){
       BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
     }
     insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL, hasMod);
   }
-  else if (instr==AArch64::PACDZA || instr==AArch64::AUTDZA){
-  	mod = 0;
-    // Move the pointer to destination register
-    //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-    insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL, hasMod);
-  }
-
+  
   // And finally, remove the intrinsic
   MI.removeFromParent();
 }
