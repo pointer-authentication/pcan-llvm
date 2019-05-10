@@ -79,9 +79,7 @@ namespace {
             //errs()<<"Node: "<<BB.getName()<<" doesn't dominate "<<BBC.getName()<<"\n";
             }
           }
-           
-            
-           
+
            // DefiningBlocks.insert(&BB);
            //auto DF = DominanceFrontierBase<DefiningBlocks, false>();
            //DF.dump();
@@ -103,8 +101,6 @@ namespace {
               PQ.push({Node, Node->getLevel()});
               errs()<<"PQ populated";
             }*/
-            
-            
             
             //DefiningBlocks.push_back(SI->getParent());
             SmallVector<BasicBlock *, 32> IDFBlocks;

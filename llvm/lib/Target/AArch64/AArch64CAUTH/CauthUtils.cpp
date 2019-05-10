@@ -19,34 +19,36 @@ CauthUtils::CauthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII
     TRI(TRI)
 {};
 
-void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, bool hasMod, unsigned funcID) {
+void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, 
+                                              unsigned funcID, unsigned ispacga, unsigned ispacda, unsigned isautda) {
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
   const unsigned src = MI.getOperand(1).getReg();
   unsigned mod = AArch64::X9; //MI.getOperand(2).getReg();		//modifier register
+  //unsigned mod = AArch64::SP;
   /*if (MI.getOperand(2).isKill()) {
         unsigned oldMod = mod;
         mod = AArch64::X26;
         BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(oldMod).addImm(0).addImm(0);
   }*/
- 
-  if (instr==AArch64::PACGA){
+  if ((ispacga==1 && ispacda==0) || (ispacda==1 && ispacga==0) || isautda==1 || (ispacga==2 && isautda==0) ) {
     BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(AArch64::SP).addImm(0).addImm(0);
     BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);
+  }
+  if (instr==AArch64::PACGA){
+    /*BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(AArch64::SP).addImm(0).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);*/
   	if (!CAUTH::useDummy()){
       BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
   	}
   	else{
-  	  insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL, hasMod);
+  	  insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
   	}
   }
   else if (instr==AArch64::PACDA || instr==AArch64::AUTDA){
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(AArch64::SP).addImm(0).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);
-    if (instr==AArch64::PACDA){
-      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-    }
-    insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL, hasMod);
+    /*BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), mod).addReg(AArch64::SP).addImm(0).addImm(0);
+    BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);*/
+    insertPAInstr(MBB, &MI, dst, mod, TII->get(instr), DL);
   }
   
   // And finally, remove the intrinsic
@@ -54,55 +56,56 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
 }
 
 void CauthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL, bool hasMod) {
-  insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL, hasMod);
+                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
+  insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
 }
 
 void CauthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
-                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL, bool hasMod) {
+                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
     if (!CAUTH::useDummy()){
       if (MIi == nullptr) {
         BuildMI(&MBB, DL, MCID).addReg(ptrReg).addReg(modReg);
       } else {
-      	if (hasMod){
+      	//if (hasMod){
           BuildMI(MBB, MIi, DL, MCID, ptrReg).addReg(modReg);
-    	}
+    	/*}
     	else{
     	  BuildMI(MBB, MIi, DL, MCID, ptrReg);
-    	}
+    	}*/
       }
     }
     else{
-      addNops(MBB, MIi, ptrReg, modReg, DL, hasMod);
+      addNops(MBB, MIi, ptrReg, modReg, DL);
     }
 }
 
-void CauthUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL, bool hasMod) {
+void CauthUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
   if (MI == nullptr) {
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(17);
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(37);
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(97);
-    if (hasMod){
-      /*BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), AArch64::X24).addReg(modReg).addImm(0).addImm(0);
-      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(AArch64::X24).addImm(0);*/
+   /* if (hasMod){
+      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), AArch64::X24).addReg(modReg).addImm(0).addImm(0);
+      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(AArch64::X24).addImm(0);
       
       BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(117); 
     }
-	else{
+	else{*/
 	  BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(117);	
-	  }
+	//  }
   } else {
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(17);
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(37);
     BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(97);
-    if (hasMod){
+    /*if (hasMod){
       BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(117);
-      /*BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), AArch64::X24).addReg(modReg).addImm(0).addImm(0);
-      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(AArch64::X24).addImm(0);*/
+
+      BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), AArch64::X24).addReg(modReg).addImm(0).addImm(0);
+      BuildMI(&MBB, DL, TII->get(AArch64::EORXrs)).addReg(ptrReg).addReg(ptrReg).addReg(AArch64::X24).addImm(0);
   	}
-	else{
+	else{*/
 	  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri), ptrReg).addReg(ptrReg).addImm(117);
-	  }
+	 // }
   }
 }
 

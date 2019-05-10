@@ -75,6 +75,9 @@ bool CauthPass::doInitialization(Module &M) {
 bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
   ++funcID;
+  unsigned ispacga=0;
+  unsigned ispacda=0;
+  unsigned isautda=0;
   TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
@@ -104,8 +107,9 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         case AArch64::CAUTH_PACGZA:
         { 
           //errs()<<"\nInside CAUTH_PACGA Case\n";
+          ++ispacga;
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, true, funcID);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, funcID, ispacga, ispacda, isautda);
           found = true; 
           break;
         }
@@ -113,25 +117,24 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         case AArch64::CAUTH_PACDZA:
         {
           //errs()<<"\nInside CAUTH_PACDA Case\n";
+          ++ispacda;
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, true, funcID);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, funcID, ispacga, ispacda, isautda);
           break;
         }
         case AArch64::CAUTH_AUTDZA:
         {
           //errs()<<"\nInside CAUTH_AUTDA Case\n";
-            
+          ++isautda;  
           auto &MI = *MIi--;
-          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, true, funcID);
+          cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, funcID, ispacga, ispacda, isautda);
           found = true; // make sure we return true when we modify stuff
 
           break;
         }
       }
     }
-    if (MF.getName()=="init_lists_p_slice"){
-     // MBB.dump();
-    }
+      //MBB.dump();
   }
 
   return found;

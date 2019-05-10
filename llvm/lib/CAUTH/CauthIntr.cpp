@@ -21,7 +21,7 @@ using namespace llvm::CAUTH;
 Value *CauthIntr::pacga(IRBuilder<> *builder, 
                         Module &M, 
                         Instruction &I, 
-                        unsigned funcID, 
+                        long long funcID, 
                         const std::string &name) {
   
   auto &C = M.getContext();
@@ -29,13 +29,13 @@ Value *CauthIntr::pacga(IRBuilder<> *builder,
   auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacgza);
   Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,funcID));
   //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-  Value *args[] { src};
+  Value *args[] { src };
   return builder->CreateCall(pacIntr, args, name);
 }
 
 Value *CauthIntr::pacga(Function &F, 
                         Instruction &I,
-                        unsigned funcID, 
+                        long long funcID, 
                         const std::string &name) {
   // insert the call
   IRBuilder<> Builder(&I);

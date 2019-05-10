@@ -41,7 +41,7 @@ namespace {
     
   public:
     static char ID; // Pass identification
-    unsigned funcID=0; 
+    long long funcID = 0ll; 
 
     CAuthIR() : FunctionPass(ID) {}
 
@@ -140,7 +140,7 @@ namespace {
             CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
           }
           
-          //  BB.dump();
+          //BB.dump();
           
         }
       return true; 

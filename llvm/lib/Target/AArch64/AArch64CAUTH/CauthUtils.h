@@ -43,15 +43,16 @@ namespace CAUTH {
       return std::make_shared<CauthUtils>(TRI, TII);
     };
 
-    void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, bool hasMod, unsigned funcID);
+    void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, unsigned funcID, 
+                                  unsigned ispacga, unsigned ispacda, unsigned isautda);
 
     void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                       unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL, bool hasMod);
+                       unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
 
     void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
-                       unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL, bool hasMod);
+                       unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
 
-    void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL, bool hasMod);
+    void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
   };
 
 }

@@ -22,8 +22,8 @@ class CauthIntr {
 
 public:
 
-  static Value *pacga(Function &F, Instruction &I, unsigned funcID, const std::string &name = "");
-  static Value *pacga(IRBuilder<> *builder, Module &M, Instruction &I, unsigned funcID, const std::string &name = "");
+  static Value *pacga(Function &F, Instruction &I, long long funcID, const std::string &name = "");
+  static Value *pacga(IRBuilder<> *builder, Module &M, Instruction &I, long long funcID, const std::string &name = "");
 
   static Value *pacda(Function &F, Instruction &I, Value *V, const std::string &name = "");
   static Value *pacda(IRBuilder<> *builder, Module &M, Value *V, const std::string &name = "");
