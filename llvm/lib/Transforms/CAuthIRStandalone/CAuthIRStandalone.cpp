@@ -33,8 +33,6 @@ STATISTIC(FunctionCounter, "number of functions instrumented");
 STATISTIC(ArrayBuffCounter, "number of array buffers instrumented");
 STATISTIC(TotalBuffCounter, "Total number of buffers instrumented");
 
-//FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
-
 namespace {
   // CAuthIR - 
   struct CAuthIR : public FunctionPass {
@@ -51,8 +49,6 @@ namespace {
     bool runOnFunction(Function &F) override {
       ++TotalFunctionCounter;
       ++funcID;
-      //errs() << DEBUG_TYPE;
-      //errs().write_escaped(F.getName()) << '\n';
       unsigned numBuffs = 0;
       bool isFirstAlloc = false;
       Value* oldcbuff = nullptr;
@@ -61,19 +57,13 @@ namespace {
       BasicBlock* TrueBB=nullptr;
       BasicBlock* FalseBB=nullptr;
       Type* buffTy = nullptr;
-      //Type* int64PtrTy = PointerType::get(int64Ty, 0);
       Value *pacga_instr = nullptr;
       Value *pacda_instr = nullptr;
       Value *save_ret = nullptr;
       AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
-         
-        //for (auto &I : BB){
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
-          //errs() << DEBUG_TYPE;
-          //I->dump();
           if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
-
             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
             isFirstAlloc = false;
             loc = &*I; 
@@ -81,7 +71,6 @@ namespace {
             unsigned i = 0;
             Type* tmp = nullptr;
             buffTy = Type::getInt64Ty(C);
-
               if (numBuffs==0){
                 arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
                 ++numBuffs;
@@ -92,9 +81,7 @@ namespace {
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);                
               }
-
             if(aI->getAllocatedType()->isArrayTy()){
-
               unsigned i = 0;
               Type* tmp = nullptr;
               while (i <= numBuffs){
@@ -106,7 +93,6 @@ namespace {
                 }
                 i++;
               }
-
               if (numBuffs>=1 && !isFirstAlloc){
                 arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
                 ++numBuffs;
@@ -116,7 +102,6 @@ namespace {
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
-              //++I;
             }
           }
           else if(isa<ReturnInst>(I) && numBuffs>0){
@@ -145,12 +130,10 @@ namespace {
         }
         
          if (BB.getName()=="TrueBB"){
-            //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
             llvm::ReturnInst::Create(C, save_ret, TrueBB);
           }else if (BB.getName()=="FalseBB"){
             CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
           }
-         //BB.dump();
       }
       return true; 
     }
@@ -172,9 +155,6 @@ void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Val
   Constant *printfFunc = M->getOrInsertFunction("printf", FunctionType::get(IntegerType::getInt32Ty(C), 
                         PointerType::get(Type::getInt8Ty(C), 0)) );
   B.CreateCall(printfFunc, {arg}, "printfCall");
-  //B.CreateUnreachable();
-  //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
-  
   Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
   FunctionType *fType = FunctionType::get(Type::getVoidTy(C), Type::getInt32Ty(C), false);
   Constant *exitF = M->getOrInsertFunction("exit", fType);

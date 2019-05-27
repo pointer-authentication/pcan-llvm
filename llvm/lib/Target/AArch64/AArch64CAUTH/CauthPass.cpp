@@ -85,28 +85,15 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   cauthUtils_ptr = CauthUtils::get(TRI, TII);
 
   //Calling convention is default C (AAPCS) calling convention.
-  /*auto func = &MF.getFunction();
-  auto id = func->getCallingConv();
-  errs()<<id<<"\n"; 
-  if (id == CallingConv::C){ 
-    errs()<<"CallingConv is ";
-    errs()<<id<<"\n";  
-  }
-*/
 
   for (auto &MBB : MF) {
-    //errs()<<MF.getName()<<"\n"<< MBB.getName() << "\n";
     for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      //MIi->dump();
       const auto MIOpcode = MIi->getOpcode();
-      //errs()<<"Opcode:\t"<<MIOpcode<<"\n";
-
       switch(MIOpcode) {
         default:
           break;
-        case AArch64::CAUTH_PACGZA:
+        case AArch64::CAUTH_PACGA:
         { 
-          //errs()<<"\nInside CAUTH_PACGA Case\n";
           ++ispacga;
           auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, funcID, ispacga, ispacda, isautda);
@@ -114,17 +101,15 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           break;
         }
         
-        case AArch64::CAUTH_PACDZA:
+        case AArch64::CAUTH_PACDA:
         {
-          //errs()<<"\nInside CAUTH_PACDA Case\n";
           ++ispacda;
           auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, funcID, ispacga, ispacda, isautda);
           break;
         }
-        case AArch64::CAUTH_AUTDZA:
+        case AArch64::CAUTH_AUTDA:
         {
-          //errs()<<"\nInside CAUTH_AUTDA Case\n";
           ++isautda;  
           auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, funcID, ispacga, ispacda, isautda);
@@ -141,43 +126,4 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
 }
 
 
-/*void CauthPass::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr) {
-  const auto &DL = MI.getDebugLoc();
-  const unsigned dst = MI.getOperand(0).getReg();
-  const unsigned src = MI.getOperand(1).getReg();
-  //unsigned mod = AArch64::SP;
-  
-  if (instr==AArch64::PACGA){
-    unsigned mod = AArch64::SP;
-    //unsigned mod = MI.getOperand(2).getReg();
-    BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
-  }
-  else if (instr==AArch64::PACDZA || instr==AArch64::AUTDZA){
-    //unsigned mod = MI.getOperand(2).getReg();
-    // Save the mod register if it is marked as killable!
-    // Move the pointer to destination register
-    //BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), dst).addReg(src).addImm(0).addImm(0);
-    insertPAInstr(MBB, &MI, dst, 0, TII->get(instr), DL);
-  }
-  // And finally, remove the intrinsic
-  MI.removeFromParent();
-}
-
-
-
-
-
-void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
-  insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
-}
-
-void CauthPass::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
-                               unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
-    if (MIi == nullptr){
-      BuildMI(&MBB, DL, MCID).addReg(ptrReg);
-    } else {
-      BuildMI(MBB, MIi, DL, MCID, ptrReg);
-    }
-}*/
 

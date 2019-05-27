@@ -49,8 +49,6 @@ namespace {
     bool runOnFunction(Function &F) override {
       ++TotalFunctionCounter;
       ++funcID;
-      //errs() << DEBUG_TYPE;
-      //errs().write_escaped(F.getName()) << '\n';
       unsigned numBuffs = 0;
       Value* oldcbuff = nullptr;
       Instruction *loc = nullptr;
@@ -58,33 +56,24 @@ namespace {
       BasicBlock* TrueBB=nullptr;
       BasicBlock* FalseBB=nullptr;
       Type* buffTy = nullptr;
-      //Type* int64PtrTy = PointerType::get(int64Ty, 0);
       Value *pacga_instr = nullptr;
       Value *pacda_instr = nullptr;
       Value *save_ret = nullptr;
       AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
-         
-        //for (auto &I : BB){
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
-          //errs() << DEBUG_TYPE;
-          //I->dump();
           if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
-
-             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
-            
+             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);          
             if(aI->getAllocatedType()->isArrayTy()){
-
-              loc = &*I; //->getNextNode();
+              loc = &*I; 
               IRBuilder<> Builder(loc);
-
               unsigned i = 0;
-              Type* tmp = nullptr;
+              //Type* tmp = nullptr;
               while (i <= numBuffs){
                 if (i==0){
                   buffTy = Type::getInt64Ty(C);
                 }else{
-                  tmp = PointerType::get(buffTy, 0);
+                  auto tmp = PointerType::get(buffTy, 0);
                   buffTy = tmp;
                 }
                 i++;
@@ -136,12 +125,10 @@ namespace {
         }
         
          if (BB.getName()=="TrueBB"){
-            //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
             llvm::ReturnInst::Create(C, save_ret, TrueBB);
           }else if (BB.getName()=="FalseBB"){
             CAuthIRArrays::CreateFailBB(C, &F, FalseBB, save_ret);
           }
-        //BB.dump();
       }
       return true; 
     }
@@ -163,11 +150,10 @@ void CAuthIRArrays::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseB
   Constant *printfFunc = M->getOrInsertFunction("printf", FunctionType::get(IntegerType::getInt32Ty(C), 
                         PointerType::get(Type::getInt8Ty(C), 0)) );
   B.CreateCall(printfFunc, {arg}, "printfCall");
-
   Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
   FunctionType *fType = FunctionType::get(Type::getVoidTy(C), Type::getInt32Ty(C), false);
   Constant *exitF = M->getOrInsertFunction("exit", fType);
   B.CreateCall(exitF,one);
-  llvm::ReturnInst::Create(C, save_ret, FalseBB);
 
+  llvm::ReturnInst::Create(C, save_ret, FalseBB);
 }

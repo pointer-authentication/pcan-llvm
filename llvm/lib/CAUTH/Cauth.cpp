@@ -18,9 +18,6 @@ static cl::opt<bool> EnableCAuth("cauth", cl::Hidden,
                                       cl::desc("Canary Authentication"),
                                       cl::init(false));
 
-static cl::opt<bool> EnableCAuthMod("cauth-mod", cl::Hidden,
-                                      cl::desc("Canary Authentication with custom modifier"),
-                                      cl::init(false));
 
 static cl::opt<bool> UseDummyInstructions("cauth-dummy", cl::Hidden,
                                           cl::desc("Use dummy instructions and XOR instead of PA"),
@@ -35,9 +32,6 @@ bool llvm::CAUTH::useCAuth() {
   return EnableCAuth;
 }
 
-bool llvm::CAUTH::useCAuthMod() {
-  return EnableCAuthMod;
-}
 
 bool llvm::CAUTH::useDummy() {
   return UseDummyInstructions;

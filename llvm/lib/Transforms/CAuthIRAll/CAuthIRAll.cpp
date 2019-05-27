@@ -33,8 +33,6 @@ STATISTIC(FunctionCounter, "number of functions instrumented");
 STATISTIC(VarCounter, "Total number of local variables instrumented");
 
 
-//FunctionPass *llvm::createCAuthIRPass() { return new CAuthIR(); }
-
 namespace {
   // CAuthIR - 
   struct CAuthIR : public FunctionPass {
@@ -51,8 +49,6 @@ namespace {
     void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Value *save_ret);
 
     bool runOnFunction(Function &F) override {
-      //errs() << DEBUG_TYPE;
-      //errs().write_escaped(F.getName()) << '\n';
       ++TotalFunctionCounter;
       ++funcID;
       unsigned numBuffs = 0;
@@ -62,23 +58,15 @@ namespace {
       BasicBlock* TrueBB=nullptr;
       BasicBlock* FalseBB=nullptr;
       Type* buffTy = nullptr;
-      //Type* int64PtrTy = PointerType::get(int64Ty, 0);
       Value *pacga_instr = nullptr;
       Value *pacda_instr = nullptr;
       Value *save_ret = nullptr;
       AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
-         
-        //errs() << BB.getName()<< "\n";
-
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
-          //errs() << DEBUG_TYPE;
-          //I->dump();
-          //BB.getName().find("if") == std::string::npos
-
           if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
               ++VarCounter;
-              loc = &*I; //->getNextNode();
+              loc = &*I;
               IRBuilder<> Builder(loc);
 
               unsigned i = 0;
@@ -131,17 +119,12 @@ namespace {
               }
             }
           }         
-        }
-        
+        }        
          if (BB.getName()=="TrueBB"){
-            //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
             llvm::ReturnInst::Create(C, save_ret, TrueBB);
           }else if (BB.getName()=="FalseBB"){
             CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
-          }
-          
-          //BB.dump();
-          
+          }          
         }
       return true; 
     }
@@ -163,9 +146,6 @@ void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Val
   Constant *printfFunc = M->getOrInsertFunction("printf", FunctionType::get(IntegerType::getInt32Ty(C), 
                         PointerType::get(Type::getInt8Ty(C), 0)) );
   B.CreateCall(printfFunc, {arg}, "printfCall");
-  //B.CreateUnreachable();
-  //Value* ret = Constant::getIntegerValue(Type::getInt32Ty(C), APInt(32,0));
-
   Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
   FunctionType *fType = FunctionType::get(Type::getVoidTy(C), Type::getInt32Ty(C), false);
   Constant *exitF = M->getOrInsertFunction("exit", fType);

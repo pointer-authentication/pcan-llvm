@@ -27,7 +27,7 @@ namespace CAUTH {
 
   typedef std::shared_ptr<CauthUtils> CauthUtils_ptr;
 
-  static inline unsigned getModifierReg() { return AArch64::X24; }
+  static inline unsigned getModifierReg() { return AArch64::X9; }
 
   class CauthUtils {
 

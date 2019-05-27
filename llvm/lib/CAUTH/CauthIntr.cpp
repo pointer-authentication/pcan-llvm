@@ -8,8 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-//#include <llvm/CAUTH/CauthIntr.h>
-
 #include "llvm/CAUTH/CauthIntr.h"
 #include <llvm/IR/Constants.h>
 #include "llvm/IR/IRBuilder.h"
@@ -26,9 +24,8 @@ Value *CauthIntr::pacga(IRBuilder<> *builder,
   
   auto &C = M.getContext();
   Type *arg_types[] = { Type::getInt64Ty(C) };
-  auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacgza);
+  auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacga);
   Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,funcID));
-  //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
   Value *args[] { src };
   return builder->CreateCall(pacIntr, args, name);
 }
@@ -51,16 +48,9 @@ Value *CauthIntr::pacda(IRBuilder<> *builder,
   
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
-  auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacdza, arg_types);
-  //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-  // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
+  auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacda, arg_types);
   Value *args[] { V };
   return builder->CreateCall(pacIntr, args, name);
- 
- /* else{
-    Value *args[] { V };
-    return builder->CreateCall(pacIntr, args, name);
-  }*/
 }
 
 Value *CauthIntr::pacda(Function &F, 
@@ -77,19 +67,11 @@ Value *CauthIntr::autda(IRBuilder<> *builder,
                         Value *V, 
                         const std::string &name) {
 
-  // Get the intrinsic declaration based on our specific pointer type
   auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
-  auto autIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_autdza, arg_types);
-  //Value *modifier = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,10));
-  // Create the arguments for the intrinsic call (i.e., original pointer + modifier)
+  auto autIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_autda, arg_types);
   Value *args[] { V };
   return builder->CreateCall(autIntr, args, name);
-  
-  /*else{
-    Value *args[] { V };
-    return builder->CreateCall(autIntr, args, name);
-  }*/
 }
 
 Value *CauthIntr::autda(Function &F, 
