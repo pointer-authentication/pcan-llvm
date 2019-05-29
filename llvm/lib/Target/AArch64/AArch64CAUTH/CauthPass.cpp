@@ -24,8 +24,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
-// CAUTH includes
-//#include "llvm/CAUTH/Cauth.h"
+
 #include "CauthUtils.h"
 
 #define DEBUG_TYPE "aarch64-cauth"
@@ -41,16 +40,12 @@ namespace {
    static char ID;
    CauthPass() :
    MachineFunctionPass(ID) {}
-   //log(PARTS::PartsLog::getLogger(DEBUG_TYPE)){}
-
    StringRef getPassName() const override { return DEBUG_TYPE; }
 
    bool doInitialization(Module &M) override;
    bool runOnMachineFunction(MachineFunction &) override;
-   //void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, bool isMod);
 
  private:
-    const TargetMachine *TM = nullptr;
     const AArch64Subtarget *STI = nullptr;
     const AArch64InstrInfo *TII = nullptr;
     const AArch64RegisterInfo *TRI = nullptr;
@@ -78,7 +73,6 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   unsigned ispacga=0;
   unsigned ispacda=0;
   unsigned isautda=0;
-  TM = &MF.getTarget();;
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
@@ -106,6 +100,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           ++ispacda;
           auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, funcID, ispacga, ispacda, isautda);
+          found = true; // make sure we return true when we modify stuff
           break;
         }
         case AArch64::CAUTH_AUTDA:
@@ -114,14 +109,11 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
           auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, funcID, ispacga, ispacda, isautda);
           found = true; // make sure we return true when we modify stuff
-
           break;
         }
       }
     }
-      //MBB.dump();
   }
-
   return found;
 }
 

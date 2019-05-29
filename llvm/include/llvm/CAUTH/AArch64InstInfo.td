@@ -8,26 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-let isPseudo = 1 in {
-  def CAUTH_PACGZA : Pseudo<(outs GPR64:$dst),
-                           (ins GPR64:$src, GPR64:$mod),
-                           [(set i64:$dst, (int_ca_pacgza GPR64:$src, GPR64:$mod))]>,
-                    Sched<[]>;
-}
-
-let isPseudo = 1 in {
-  def CAUTH_PACDZA : Pseudo<(outs GPR64:$dst),
-                           (ins GPR64:$ptr, GPR64:$mod),
-                           [(set i64:$dst, (int_ca_pacdza GPR64:$ptr, GPR64:$mod))]>,
-                    Sched<[]>;
-}
-
-let isPseudo = 1 in {
-  def CAUTH_AUTDZA : Pseudo<(outs GPR64:$dst),
-                           (ins GPR64:$ptr, GPR64:$mod),
-                           [(set i64:$dst, (int_ca_autdza GPR64:$ptr, GPR64:$mod))]>,
-                    Sched<[]>;
-}
 
 
 let isPseudo = 1 in {

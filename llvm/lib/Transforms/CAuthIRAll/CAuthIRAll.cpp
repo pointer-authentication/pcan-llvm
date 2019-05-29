@@ -53,79 +53,83 @@ namespace {
       ++funcID;
       unsigned numBuffs = 0;
       Value* oldcbuff = nullptr;
-      Instruction *loc = nullptr;
       auto &C = F.getParent()->getContext();
       BasicBlock* TrueBB=nullptr;
       BasicBlock* FalseBB=nullptr;
-      Type* buffTy = nullptr;
-      Value *pacga_instr = nullptr;
-      Value *pacda_instr = nullptr;
       Value *save_ret = nullptr;
-      AllocaInst* arr_alloc = nullptr;
       for (auto &BB : F){
         for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I){
+          // look for alloca instruction within entry basic block
           if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
               ++VarCounter;
-              loc = &*I;
-              IRBuilder<> Builder(loc);
-
+              IRBuilder<> Builder(&*I);
+              Type* buffTy = nullptr;
               unsigned i = 0;
-              Type* tmp = nullptr;
               while (i <= numBuffs){
                 if (i==0){
                   buffTy = Type::getInt64Ty(C);
                 }else{
-                  tmp = PointerType::get(buffTy, 0);
+                  auto tmp = PointerType::get(buffTy, 0);
                   buffTy = tmp;
                 }
                 i++;
               }
-
-              arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
+              //prepare instruction to allocate space for signed canary
+              auto arr_alloc = Builder.CreateAlloca(buffTy , nullptr, "cauth_alloc");
               ++numBuffs;
               
               if (numBuffs==1){
                 ++FunctionCounter;
-                pacga_instr = CauthIntr::pacga(F, *loc, funcID);
+                // add pacga intrinsic
+                auto pacga_instr = CauthIntr::pacga(F, *I, funcID);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
+                // store the signed canary
                 Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
               }
               else if (numBuffs>1){
-                pacda_instr = CauthIntr::pacda(F, *loc, oldcbuff);
+                // add pacda intrinsic
+                auto pacda_instr = CauthIntr::pacda(F, *I, oldcbuff);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
+                // store the signed canary
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
               }
           }
+          // check if the return instruction is encountered and one or more signed canaries were added
           else if(isa<ReturnInst>(I) && numBuffs>0){
-            Instruction *inst= &*I;
-            IRBuilder<> Builder(inst);
-            llvm::ReturnInst* rI = dyn_cast<llvm::ReturnInst>(inst);
+            IRBuilder<> Builder(&*I);
+            llvm::ReturnInst* rI = dyn_cast<llvm::ReturnInst>(&*I);
             auto canary_val = Builder.CreateLoad(oldcbuff);
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
+                // regenerate the correct pacga canary for comparison
                 auto pacga2_instr = CauthIntr::pacga(F, *I, funcID);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
                 TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
+                // add basic block to handle canary check failure
                 FalseBB= CAuthIR::CreateEmptyBB(C, "FalseBB", &F);
                 Builder.CreateCondBr(cmp, TrueBB, FalseBB);
+                // save original return value
                 save_ret = rI->getReturnValue();
                 auto tmp = I;
                 I--;
                 tmp->eraseFromParent();
               }
               else if (i>1){
-              Value* autda_instr = CauthIntr::autda(F, *I, canary_val);
-              canary_val = Builder.CreateLoad(autda_instr);
+                // add autda intrinsic 
+                auto autda_instr = CauthIntr::autda(F, *I, canary_val);
+                canary_val = Builder.CreateLoad(autda_instr);
               }
             }
           }         
         }        
-         if (BB.getName()=="TrueBB"){
-            llvm::ReturnInst::Create(C, save_ret, TrueBB);
-          }else if (BB.getName()=="FalseBB"){
-            CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
-          }          
+        if (BB.getName()=="TrueBB"){
+          // insert original return instruction to execute when canaries remain intact
+          llvm::ReturnInst::Create(C, save_ret, TrueBB);
         }
+        else if (BB.getName()=="FalseBB"){
+          CAuthIR::CreateFailBB(C, &F, FalseBB, save_ret);
+        }          
+      }
       return true; 
     }
   };
@@ -143,14 +147,15 @@ void CAuthIR::CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB, Val
   IRBuilder<> B(FalseBB);
   Module* M = F->getParent();
   auto arg = B.CreateGlobalString("\n***Canary Check Failed***\nExiting....\n\n", "__canary_chk_fail");
+  // print "canary check failed" message
   Constant *printfFunc = M->getOrInsertFunction("printf", FunctionType::get(IntegerType::getInt32Ty(C), 
                         PointerType::get(Type::getInt8Ty(C), 0)) );
   B.CreateCall(printfFunc, {arg}, "printfCall");
   Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()),1);
   FunctionType *fType = FunctionType::get(Type::getVoidTy(C), Type::getInt32Ty(C), false);
+  // exit
   Constant *exitF = M->getOrInsertFunction("exit", fType);
   B.CreateCall(exitF,one);
-
   llvm::ReturnInst::Create(C, save_ret, FalseBB);
 
 }

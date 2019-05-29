@@ -21,42 +21,40 @@
 
 namespace llvm {
 
-namespace CAUTH {
+  namespace CAUTH {
 
-  class CauthUtils;
+    class CauthUtils;
 
-  typedef std::shared_ptr<CauthUtils> CauthUtils_ptr;
+    typedef std::shared_ptr<CauthUtils> CauthUtils_ptr;
 
-  static inline unsigned getModifierReg() { return AArch64::X9; }
+    static inline unsigned getModifierReg() { return AArch64::X9; }
 
-  class CauthUtils {
+    class CauthUtils {
 
-  const TargetInstrInfo *TII;
-  const TargetRegisterInfo *TRI;
-  
-  CauthUtils() = delete;
+    const TargetInstrInfo *TII;
+    const TargetRegisterInfo *TRI;
+    
+    CauthUtils() = delete;
 
-  public:
-    CauthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII);
+    public:
+      CauthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII);
 
-    static inline CauthUtils_ptr get(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) {
-      return std::make_shared<CauthUtils>(TRI, TII);
+      static inline CauthUtils_ptr get(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) {
+        return std::make_shared<CauthUtils>(TRI, TII);
+      };
+
+      void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, unsigned funcID, 
+                                    unsigned ispacga, unsigned ispacda, unsigned isautda);
+
+      void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+                         unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+      void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
+                         unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
+
+      void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
     };
-
-    void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, unsigned funcID, 
-                                  unsigned ispacga, unsigned ispacda, unsigned isautda);
-
-    void insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
-                       unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
-
-    void insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg,
-                       unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL);
-
-    void addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL);
-  };
-
-}
-
+  }
 }
 
 #endif

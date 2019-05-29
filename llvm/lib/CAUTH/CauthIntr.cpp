@@ -22,10 +22,8 @@ Value *CauthIntr::pacga(IRBuilder<> *builder,
                         long long funcID, 
                         const std::string &name) {
   
-  auto &C = M.getContext();
-  Type *arg_types[] = { Type::getInt64Ty(C) };
   auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacga);
-  Value *src = Constant::getIntegerValue(Type::getInt64Ty(C), APInt(64,funcID));
+  Value *src = Constant::getIntegerValue(Type::getInt64Ty(M.getContext()), APInt(64,funcID));
   Value *args[] { src };
   return builder->CreateCall(pacIntr, args, name);
 }
@@ -46,7 +44,6 @@ Value *CauthIntr::pacda(IRBuilder<> *builder,
                         Value *V, 
                         const std::string &name) {
   
-  auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
   auto pacIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_pacda, arg_types);
   Value *args[] { V };
@@ -67,7 +64,6 @@ Value *CauthIntr::autda(IRBuilder<> *builder,
                         Value *V, 
                         const std::string &name) {
 
-  auto &C = M.getContext();
   Type *arg_types[] = { V->getType() };
   auto autIntr = Intrinsic::getDeclaration(&M, Intrinsic::ca_autda, arg_types);
   Value *args[] { V };
