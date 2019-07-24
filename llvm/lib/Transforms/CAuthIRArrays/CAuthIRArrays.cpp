@@ -43,12 +43,15 @@ struct CAuthIRArrays : public FunctionPass {
 
   bool runOnFunction(Function &F) override;
 
-  BasicBlock *CreateEmptyBB(LLVMContext &C, const Twine &Name = "",
-                            Function *Parent = nullptr,
-                            BasicBlock *InsertBefore = nullptr);
+  static Value *instrumentEntry(Function &F, unsigned mod);
+  static bool instrumentReturn(Function &F, unsigned mod, Value *canary);
 
-  void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB,
-                    Value *save_ret);
+  static BasicBlock *CreateEmptyBB(LLVMContext &C, const Twine &Name = "",
+                                   Function *Parent = nullptr,
+                                   BasicBlock *InsertBefore = nullptr);
+
+  static void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB,
+                           Value *save_ret);
 
 };
 
@@ -60,90 +63,110 @@ static RegisterPass<CAuthIRArrays> X("cauth-ir-arrays",
 
 bool CAuthIRArrays::runOnFunction(Function &F) {
   ++TotalFunctionCounter;
-  ++funcID;
-  unsigned numBuffs = 0;
-  Value *oldcbuff = nullptr;
-  auto &C = F.getParent()->getContext();
-  BasicBlock *TrueBB = nullptr;
-  BasicBlock *FalseBB = nullptr;
-  Value *save_ret = nullptr;
-  for (auto &BB : F) {
-    for (BasicBlock::iterator I = BB.begin(), E = BB.end(); I != E; ++I) {
-      // look for alloca instruction within entry basic block
-      if (isa<AllocaInst>(*I) && BB.getName() == "entry") {
-        llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
-        // check for array allocations
-        if (aI->getAllocatedType()->isArrayTy()) {
-          IRBuilder<> Builder(&*I);
-          Type *buffTy = nullptr;
-          unsigned i = 0;
-          while (i <= numBuffs) {
-            if (i == 0) {
-              buffTy = Type::getInt64Ty(C);
-            } else {
-              auto tmp = PointerType::get(buffTy, 0);
-              buffTy = tmp;
-            }
-            i++;
-          }
-          //prepare instruction to allocate space for signed canary
-          auto arr_alloc = Builder.CreateAlloca(buffTy, nullptr, "cauth_alloc");
-          ++numBuffs;
-          ++TotalBuffCounter;
-          ++ArrayBuffCounter;
-          if (numBuffs == 1) {
-            // add pacga intrinsic
-            auto pacga_instr = CauthIntr::pacga(F, *I, funcID);
-            oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
-            // store the signed canary
-            Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);
-            ++FunctionCounter;
-          } else if (numBuffs > 1) {
-            // add pacda intrinsic
-            auto pacda_instr = CauthIntr::pacda(F, *I, oldcbuff);
-            oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
-            // store the signed canary
-            Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
-          }
-        }
-      } else if (isa<ReturnInst>(I) && numBuffs > 0) {
-        // check if the return instruction is encountered and one or more signed canaries were added
-        IRBuilder<> Builder(&*I);
-        llvm::ReturnInst *rI = dyn_cast<llvm::ReturnInst>(&*I);
-        // load the signed canary
-        auto canary_val = Builder.CreateLoad(oldcbuff);
-        for (int i = numBuffs; i > 0; i--) {
-          if (i == 1) {
-            // regenerate the correct pacga canary for comparison
-            auto pacga2_instr = CauthIntr::pacga(F, *I, funcID);
-            auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val,
-                                          pacga2_instr, "cmp");
-            TrueBB = CAuthIRArrays::CreateEmptyBB(C, "TrueBB", &F);
-            // add basic block to handle canary check failure
-            FalseBB = CAuthIRArrays::CreateEmptyBB(C, "FalseBB", &F);
-            Builder.CreateCondBr(cmp, TrueBB, FalseBB);
-            // save original return value
-            save_ret = rI->getReturnValue();
-            auto tmp = I;
-            I--;
-            tmp->eraseFromParent();
-          } else if (i > 1) {
-            // add autda intrinsic
-            auto autda_instr = CauthIntr::autda(F, *I, canary_val);
-            canary_val = Builder.CreateLoad(autda_instr);
-          }
-        }
+
+  auto *canary = instrumentEntry(F, funcID);
+
+  if (canary == nullptr)
+    return false;
+
+  ++FunctionCounter;
+
+  bool changed = instrumentReturn(F, funcID, canary);
+
+  assert(changed && "prologue instrumented but not the epilogue!?!");
+  return changed;
+}
+
+Value *CAuthIRArrays::instrumentEntry(Function &F, const unsigned mod) {
+  auto &C = F.getContext();
+  auto &BB = F.getEntryBlock();
+
+  Value *prevCanaryAlloca = nullptr;
+  Type *buffTy = Type::getInt64Ty(C);
+
+  for (auto &MI : BB) {
+    if (isa<AllocaInst>(MI)) {
+      auto *alloca = dyn_cast<llvm::AllocaInst>(&MI);
+
+      if (alloca->getAllocatedType()->isArrayTy()) {
+        ++TotalBuffCounter;
+        ++ArrayBuffCounter;
+
+        // Instrument buffer allocations
+        IRBuilder<> Builder(&MI);
+
+        if (prevCanaryAlloca != nullptr) // Update type unless this is first canary
+          buffTy = PointerType::get(buffTy, 0);
+
+        //prepare instruction to allocate space for signed canary
+        auto *arr_alloc = Builder.CreateAlloca(buffTy, nullptr, "cauth_alloc");
+
+        // Generate the canary
+        auto *canary = prevCanaryAlloca == nullptr ?
+                      CauthIntr::pacga(F, MI, mod) :
+                      CauthIntr::pacda(F, MI, prevCanaryAlloca);
+
+        // Store canary
+        Builder.CreateAlignedStore(canary, arr_alloc, 8);
+
+        // Keep the allocation location for next iteration
+        prevCanaryAlloca = arr_alloc;
       }
     }
+  }
 
-    if (BB.getName() == "TrueBB") {
-      // insert original return instruction to execute when canaries remain intact
-      llvm::ReturnInst::Create(C, save_ret, TrueBB);
-    } else if (BB.getName() == "FalseBB") {
-      CAuthIRArrays::CreateFailBB(C, &F, FalseBB, save_ret);
+  return prevCanaryAlloca;
+}
+
+bool CAuthIRArrays::instrumentReturn(Function &F, const unsigned mod, Value *canary) {
+  bool changed = false;
+  auto &C = F.getContext();
+
+  for (auto &BB : F) {
+    // Skip BBs added by cauth instrumentation
+    if (BB.getName().startswith_lower("cauth."))
+      continue;
+
+    for (auto Ii = BB.begin(), end = BB.end(); Ii != end; ++Ii) {
+      auto &I = *Ii;
+
+      if (isa<ReturnInst>(I)) {
+        IRBuilder<> Builder(&I);
+
+        auto *rI = dyn_cast<llvm::ReturnInst>(&I);
+        auto *canary_val = Builder.CreateLoad(canary);
+
+        while (canary_val->getType() != Type::getInt64Ty(C)) {
+          auto autda= CauthIntr::autda(F, I, canary_val);
+          canary_val = Builder.CreateLoad(autda);
+        }
+
+        auto *pacga= CauthIntr::pacga(F, I, mod);
+        auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga, "cmp");
+
+        // Generate BBs for auth failure and normal return
+        auto TrueBB = CAuthIRArrays::CreateEmptyBB(C, "cauth.ret", &F);
+        auto FalseBB = CAuthIRArrays::CreateEmptyBB(C, "cauth.fail", &F);
+
+        // Conditionally jump to fail or okay return
+        Builder.CreateCondBr(cmp, TrueBB, FalseBB);
+
+        // Populate the fail BB
+        CAuthIRArrays::CreateFailBB(C, &F, FalseBB, rI->getReturnValue());
+
+        // Make sure the okay return works
+        llvm::ReturnInst::Create(C, rI->getReturnValue(), TrueBB);
+
+        // Remove the now old return
+        --Ii;
+        I.eraseFromParent();
+
+        changed = true;
+      }
     }
   }
-  return true;
+
+  return changed;
 }
 
 BasicBlock *CAuthIRArrays::CreateEmptyBB(LLVMContext &C, const Twine &Name,
