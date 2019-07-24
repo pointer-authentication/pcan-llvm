@@ -10,7 +10,7 @@ if(WIN32 OR CYGWIN)
   set(LLVM_LINK_COMPONENTS Core Support)
 endif()
 
-add_llvm_loadable_module( LLVMCAuthIRAll
+add_llvm_library(LLVMCAuthIRAll MODULE
   CAuthIRAll.cpp
   CAuthIRIntrAll.cpp
 
