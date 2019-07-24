@@ -1,0 +1,8 @@
+Makefile.*.conf
+**/*.o
+**/*.out
+**/*.bc
+**/*.s
+**/.Makefile.swp
+**/hello.dump
+**/hello.ll

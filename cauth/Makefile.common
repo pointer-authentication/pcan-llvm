@@ -1,0 +1,147 @@
+#
+# Author: Hans Liljestrand <hans.liljestrand@aalto.fi>
+# Copyright: Secure Systems Group, Aalto University, https://ssg.aalto.fi
+#
+# This code is released under Apache 2.0 license
+#
+
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+MAKEFILE_DIR := $(MAKEFILE_DIR:/=)
+-include $(MAKEFILE_DIR)/Makefile.$(shell hostname).conf
+
+NOCAUTH 	?= # Set to Yes to disable cauth
+O_LEVEL 	?= 0
+
+#########################################################################
+# path configuration, these can be overriden in Makefile.HOSTNAME local #
+#########################################################################
+# The Linaro gcc installation to use
+LINARO_GCC 			?= ${HOME}/opt/linaro/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu
+# The Linaro sysroot to use
+SYSROOT 			?= ${HOME}/opt/linaro/sysroot-glibc-linaro-2.25-2018.05-aarch64-linux-gnu
+LLVM 				?= ${HOME}/d/pa/llvm/build
+QEMU 				?=
+
+# Locate some binaryies
+LLVM_LINKER 	:= ${LLVM}/bin/llvm-link
+LLVM_DIS 		:= ${LLVM}/bin/llvm-dis
+LLVM_OPT 		:= ${LLVM}/bin/opt
+LLVM_CONFIG 	:= ${LLVM}/bin/llvm-config
+CLANG 			:= ${LLVM}/bin/clang
+CLANGPP 		:= ${LLVM}/bin/clang++
+LLC 			:= ${LLVM}/bin/llc
+GCC 			:= ${LINARO_GCC}/bin/aarch64-linux-gnu-gcc
+# GPP_AARCH		:= /usr/aarch64-linux-gnu
+GCC_AARCH 		:= ${LINARO_GCC}
+OBJDUMP 		:= ${LINARO_GCC}/bin/aarch64-linux-gnu-objdump
+
+# Flags for clang
+#################
+C_FLAGS += -target aarch64 -march=armv8.3-a
+C_FLAGS += -I$(SYSROOT)/usr/include
+C_FLAGS += --sysroot=$(SYSROOT)
+C_FLAGS += -Wall -Wextra
+C_FLAGS += -fPIC
+C_FLAGS += -fvisibility=hidden
+C_FLAGS += -DPAUTH_ARMV8_3_A
+C_FLAGS += -O$(O_LEVEL)
+ifneq ($(NODEBUG), Yes)
+	C_FLAGS += -g
+endif
+
+# Flags for LLVM opt
+####################
+OPT_FLAGS += -O$(O_LEVEL)
+ifneq ($(NOCAUTH), Yes)
+	OPT_FLAGS += -cauth
+	OPT_FLAGS += -load LLVMCAuthIRArrays.so
+	OPT_FLAGS += -cauth-ir-arrays
+endif
+
+ifeq ($(USE_DUMMY), yes)
+	OPT_FLAGS += -cauth-dummy
+endif
+
+# Flags for LLVM static linker
+##############################
+LLC_FLAGS += -march=aarch64 -mattr=v8.3a
+LLC_FLAGS += -O=$(O_LEVEL)
+ifneq ($(NOCAUTH), Yes)
+	LLC_FLAGS += -cauth
+endif
+
+# Flags for GCC assembler
+#########################
+LDFLAGS = -fPIE
+LDFLAGS += -pie # -pie: Final executable has to be a Position Independent Executable.
+LDFLAGS += -znorelro # znorelro Disable RELRO support from linker, so we are able to write into the relocatable entries (or data.rel.ro)
+LDFLAGS += -fvisibility=hidden
+LDFLAGS += --sysroot=$(SYSROOT)
+
+LDFLAGS_CPP := $(LDFLAGS)
+LDFLAGS_CPP += -L$(GPP_AARCH)/lib
+
+GCC_FLAGS += -march=armv8.3-a
+GCC_FLAGS += -g
+
+GCC_LINKER_OPTIONS += -static
+
+# GCC flags for direct .c->bin, with or without PA
+GCC_UNSAFE := ${GCC_FLAGS}
+GCC_UNSAFE += -fno-stack-protector
+GCC_UNSAFE += -D_FORTIFY_SOURCE=0
+
+#######################################
+# Default generated values and target "
+#######################################
+
+BIN ?= $(shell basename $(shell pwd)).out
+
+SOURCES ?= $(wildcard *.c)
+
+default_all: ${BIN}
+
+######################################
+# Helper/common targets for Makefile #
+######################################
+
+print-%: ; @echo $* = $($*)
+
+${SOURCES:.c=.bc}: %.bc : %.c
+	${CLANG} ${C_FLAGS} -emit-llvm -c $<
+
+${BIN:=.linked.bc}: ${SOURCES:.c=.bc}
+	${LLVM_LINKER} ${LINKER_FLAGS} $^ -o $@
+
+${BIN:=.linked.opt.bc}: %.linked.opt.bc : %.linked.bc
+	${LLVM_OPT} ${OPT_FLAGS} < $< > $@
+
+$(BIN:=.s): %.s : %.linked.opt.bc
+	$(LLC) $(LLC_FLAGS) $< -o $@
+
+$(BIN): % : %.s
+	$(GCC) $(GCC_FLAGS) $(LDFLAGS) $^ -o $@ ${GCC_LINKER_OPTIONS}
+
+dis: $(BIN:=.linked.ll) $(BIN:=.linked.opt.ll)
+
+${BIN:=.linked.ll}: %.ll : ${SOURCES:.c=bc}
+	$(LLVM_DIS) $^
+
+${BIN:=.linked.opt.ll}: %.ll : %.bc
+	$(LLVM_DIS) $^
+
+.PHONY: run
+run: $(BIN) $(QEMU)
+	$(QEMU) -cpu max $^
+
+.PHONY: clean
+clean::
+	rm -rf ${CLEAN_FILES} *.bc *.o *.s ${BIN} *.linked_bc *.ll *.dump a.out
+
+.PHONY: mrproper
+mrproper:: clean
+	rm -rf ${MRPROPER_FILES}
+
+.PHONY: send2guest
+send2guest: ${BIN}
+	cp ${SEND_FILES} ${BIN} ${LINARO_SHARED}
