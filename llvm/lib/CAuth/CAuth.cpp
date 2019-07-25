@@ -13,15 +13,18 @@
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
-
-static cl::opt<bool> EnableCAuth("cauth", cl::Hidden,
-                                      cl::desc("Canary Authentication"),
-                                      cl::init(false));
-
+using namespace llvm::CAuth;
 
 static cl::opt<bool> UseDummyInstructions("cauth-dummy", cl::Hidden,
                                           cl::desc("Use dummy instructions and XOR instead of PA"),
                                           cl::init(false));
+
+static cl::opt<CAuthType> CAuthTypeOpt(
+    "cauth", cl::init(CAuthNone),
+    cl::desc("CAuth mode to use"),
+    cl::value_desc("mode"),
+    cl::values(clEnumValN(CAuthNone, "none", "Disable CAuth"),
+               clEnumValN(CAuthArrays, "arr", "Protect all stack buffers")));
 
 static cl::opt<bool> EnableTest("test", cl::Hidden,
                                       cl::desc("Test pass for MIR"),
@@ -29,9 +32,8 @@ static cl::opt<bool> EnableTest("test", cl::Hidden,
 
 
 bool llvm::CAuth::useCAuth() {
-  return EnableCAuth;
+  return CAuthTypeOpt != CAuthNone;
 }
-
 
 bool llvm::CAuth::useDummy() {
   return UseDummyInstructions;

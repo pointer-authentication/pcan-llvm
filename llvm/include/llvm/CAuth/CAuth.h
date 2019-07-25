@@ -15,6 +15,11 @@ namespace llvm {
 
 namespace CAuth {
 
+enum CAuthType{
+  CAuthNone,
+  CAuthArrays
+};
+
 bool useCAuth();
 bool useCAuthMod();
 bool useTest();
