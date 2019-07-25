@@ -8,10 +8,24 @@
 #include <stdio.h>
 #include <string.h>
 
+char g_arr32[32] = { 0 };
+
 __attribute__((noinline))
 void do_copy(char * dst, const char *src) {
     size_t len = strlen(src);
     strncpy(dst, src, len);
+}
+
+__attribute__((noinline))
+void printer(char *str) {
+    printf("%s\n", str);
+}
+
+__attribute__((noinline))
+void simple(void) {
+    char a[32] = { 0 };
+    do_copy(a, g_arr32);
+    printer(a);
 }
 
 __attribute__((noinline))
