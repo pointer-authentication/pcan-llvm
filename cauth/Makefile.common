@@ -54,7 +54,6 @@ endif
 OPT_FLAGS += -O$(O_LEVEL)
 ifneq ($(NOCAUTH), Yes)
 	OPT_FLAGS += -cauth
-	OPT_FLAGS += -load LLVMCAuthIRArrays.so
 	OPT_FLAGS += -cauth-ir-arrays
 endif
 

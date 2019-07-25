@@ -11,6 +11,7 @@
 add_llvm_library(Cauth
   Cauth.cpp
   CauthIntr.cpp
+  CAuthIRArrays.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/CAUTH
@@ -26,6 +27,6 @@ add_llvm_library(Cauth
   LLVMCore
   LLVMSupport
   LLVMCodeGen
-  )
+)
 
 set_property(TARGET Cauth PROPERTY LLVM_SYSTEM_LIBS)
