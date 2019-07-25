@@ -2,6 +2,7 @@ Makefile.*.conf
 **/*.o
 **/*.out
 **/*.bc
+**/*.ll
 **/*.s
 **/.Makefile.swp
 **/hello.dump
