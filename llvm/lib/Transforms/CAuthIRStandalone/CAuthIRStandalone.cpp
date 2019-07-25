@@ -61,7 +61,7 @@ namespace {
           if(isa<AllocaInst>(*I) && BB.getName()=="entry"){
             llvm::AllocaInst *aI = dyn_cast<llvm::AllocaInst>(&*I);
             IRBuilder<> Builder(&*I);
-            unsigned i = 0;
+            // unsigned i = 0;
             Type* buffTy = Type::getInt64Ty(C);
             // insert first canary 
             if (numBuffs==0){

@@ -39,7 +39,7 @@ char CauthIRIntr::ID = 0;
 static RegisterPass<CauthIRIntr> X("cauth-ir-intr", "CAuth IR Intrinsics Pass");
 
 bool CauthIRIntr::runOnFunction(Function &F) {
-  auto &C = F.getContext();
+  // auto &C = F.getContext();
 
   for (auto &BB:F){
     for (auto &I: BB) {
