@@ -9,8 +9,8 @@
 #===----------------------------------------------------------------------===//
 
 add_llvm_library(Cauth
-  Cauth.cpp
-  CauthIntr.cpp
+  CAuth.cpp
+  CAuthIntr.cpp
   CAuthCanaryPass.cpp
 
   ADDITIONAL_HEADER_DIRS

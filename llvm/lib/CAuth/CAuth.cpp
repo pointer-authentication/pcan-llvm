@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/CAUTH/Cauth.h>
-#include <llvm/Support/raw_ostream.h>
+#include "llvm/CAuth/CAuth.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
@@ -28,15 +28,15 @@ static cl::opt<bool> EnableTest("test", cl::Hidden,
                                       cl::init(false));
 
 
-bool llvm::CAUTH::useCAuth() {
+bool llvm::CAuth::useCAuth() {
   return EnableCAuth;
 }
 
 
-bool llvm::CAUTH::useDummy() {
+bool llvm::CAuth::useDummy() {
   return UseDummyInstructions;
 }
 
-bool llvm::CAUTH::useTest() {
+bool llvm::CAuth::useTest() {
   return EnableTest;
 }

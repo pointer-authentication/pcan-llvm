@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/CAUTH/CauthIntr.h>
+#include "llvm/CAuth/CAuthIntr.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
@@ -18,7 +18,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
-using namespace CAUTH;
+using namespace CAuth;
 
 #define DEBUG_TYPE "CauthIRIntr:"
 

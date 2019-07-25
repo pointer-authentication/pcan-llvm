@@ -8,18 +8,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/IR/Constants.h>
-#include "CauthUtils.h"
+#include "CAuthUtils.h"
+#include "llvm/IR/Constants.h"
 
 using namespace llvm;
-using namespace llvm::CAUTH;
+using namespace llvm::CAuth;
 
-CauthUtils::CauthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) :
+CAuthUtils::CAuthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) :
     TII(TII),
     TRI(TRI)
 {};
 
-void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, 
+void CAuthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr,
                                               unsigned funcID, unsigned ispacga, unsigned ispacda, unsigned isautda) {
   const auto &DL = MI.getDebugLoc();
   const unsigned dst = MI.getOperand(0).getReg();
@@ -31,7 +31,7 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
     BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), mod).addReg(mod).addImm(funcID).addImm(48);
   }
   if (instr==AArch64::PACGA){
-  	if (!CAUTH::useDummy()){
+  	if (!CAuth::useDummy()){
       BuildMI(MBB, MI, DL, TII->get(AArch64::PACGA), dst).addReg(src).addReg(mod);
   	}
   	else{
@@ -46,14 +46,14 @@ void CauthUtils::convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI,
   MI.removeFromParent();
 }
 
-void CauthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
+void CAuthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineBasicBlock::instr_iterator MIi, unsigned ptrReg,
                                unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
   insertPAInstr(MBB, (MBB.instr_end() == MIi ? nullptr : &*MIi), ptrReg, modReg, MCID, DL);
 }
 
-void CauthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
+void CAuthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsigned ptrReg,
                                unsigned modReg, const MCInstrDesc &MCID, const DebugLoc &DL) {
-    if (!CAUTH::useDummy()){
+    if (!CAuth::useDummy()){
       if (MIi == nullptr) {
         BuildMI(&MBB, DL, MCID).addReg(ptrReg).addReg(modReg);
       } 
@@ -66,7 +66,7 @@ void CauthUtils::insertPAInstr(MachineBasicBlock &MBB, MachineInstr *MIi, unsign
     }
 }
 
-void CauthUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
+void CAuthUtils::addNops(MachineBasicBlock &MBB, MachineInstr *MI, unsigned ptrReg, unsigned modReg, const DebugLoc &DL) {
   if (MI == nullptr){
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(17);
     BuildMI(&MBB, DL, TII->get(AArch64::EORXri)).addReg(ptrReg).addReg(ptrReg).addImm(37);

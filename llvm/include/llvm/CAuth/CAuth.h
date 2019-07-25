@@ -13,14 +13,14 @@
 
 namespace llvm {
 
-namespace CAUTH {
+namespace CAuth {
 
 bool useCAuth();
 bool useCAuthMod();
 bool useTest();
 bool useDummy();
 
-} // CAUTH
+} // CAuth
 
 } // llvm
 

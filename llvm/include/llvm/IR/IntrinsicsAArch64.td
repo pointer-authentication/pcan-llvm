@@ -685,4 +685,4 @@ def int_aarch64_crc32cx : Intrinsic<[llvm_i32_ty], [llvm_i32_ty, llvm_i64_ty],
     [IntrNoMem]>;
 }
 
-include "llvm/CAUTH/Intrinsics.td"
+include "llvm/CAuth/Intrinsics.td"

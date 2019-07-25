@@ -16,9 +16,9 @@
 
 namespace llvm {
 
-namespace CAUTH {
+namespace CAuth {
 
-class CauthIntr {
+class CAuthIntr {
 
 public:
 
@@ -32,7 +32,7 @@ public:
   static Value *autda(IRBuilder<> *builder, Module &M, Value *V, const std::string &name = "");
 };
 
-} // CAUTH
+} // CAuth
 
 } // llvm
 

@@ -8,15 +8,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/CAUTH/CauthIntr.h"
-#include <llvm/IR/Constants.h>
+#include "llvm/CAuth/CAuthIntr.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 
 using namespace llvm;
-using namespace llvm::CAUTH;
+using namespace llvm::CAuth;
 
-Value *CauthIntr::pacga(IRBuilder<> *builder, 
+Value *CAuthIntr::pacga(IRBuilder<> *builder,
                         Module &M, 
                         Instruction &I, 
                         long long funcID, 
@@ -28,7 +28,7 @@ Value *CauthIntr::pacga(IRBuilder<> *builder,
   return builder->CreateCall(pacIntr, args, name);
 }
 
-Value *CauthIntr::pacga(Function &F, 
+Value *CAuthIntr::pacga(Function &F,
                         Instruction &I,
                         long long funcID, 
                         const std::string &name) {
@@ -39,7 +39,7 @@ Value *CauthIntr::pacga(Function &F,
 }
 
 
-Value *CauthIntr::pacda(IRBuilder<> *builder, 
+Value *CAuthIntr::pacda(IRBuilder<> *builder,
                         Module &M, 
                         Value *V, 
                         const std::string &name) {
@@ -50,7 +50,7 @@ Value *CauthIntr::pacda(IRBuilder<> *builder,
   return builder->CreateCall(pacIntr, args, name);
 }
 
-Value *CauthIntr::pacda(Function &F, 
+Value *CAuthIntr::pacda(Function &F,
                         Instruction &I, 
                         Value *V,
                         const std::string &name) {
@@ -59,7 +59,7 @@ Value *CauthIntr::pacda(Function &F,
   return pacda(&Builder, *F.getParent(), V, name);
 }
 
-Value *CauthIntr::autda(IRBuilder<> *builder, 
+Value *CAuthIntr::autda(IRBuilder<> *builder,
                         Module &M, 
                         Value *V, 
                         const std::string &name) {
@@ -70,7 +70,7 @@ Value *CauthIntr::autda(IRBuilder<> *builder,
   return builder->CreateCall(autIntr, args, name);
 }
 
-Value *CauthIntr::autda(Function &F, 
+Value *CAuthIntr::autda(Function &F,
                         Instruction &I, 
                         Value *V, 
                         const std::string &name) {

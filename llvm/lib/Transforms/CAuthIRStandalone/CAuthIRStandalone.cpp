@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <llvm/CAUTH/CauthIntr.h>
+#include "llvm/CAuth/CAuthIntr.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
@@ -24,7 +24,7 @@
 #include "llvm/IR/Instructions.h"
 
 using namespace llvm;
-using namespace CAUTH;
+using namespace CAuth;
 
 #define DEBUG_TYPE "cauth-ir:\t"
 
@@ -71,7 +71,7 @@ namespace {
               ++TotalBuffCounter;
               ++FunctionCounter;
               // add pacga intrinsic
-              auto pacga_instr = CauthIntr::pacga(F, *I, funcID);
+              auto pacga_instr = CAuthIntr::pacga(F, *I, funcID);
               oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
               // store the signed canary
               Builder.CreateAlignedStore(pacga_instr, arr_alloc, 8);                
@@ -95,7 +95,7 @@ namespace {
                 ++TotalBuffCounter;
                 ++ArrayBuffCounter;
                 // add pacda intrinsic
-                auto pacda_instr = CauthIntr::pacda(F, *I, oldcbuff);
+                auto pacda_instr = CAuthIntr::pacda(F, *I, oldcbuff);
                 oldcbuff = llvm::cast<llvm::Value>(arr_alloc);
                 // store the signed canary
                 Builder.CreateAlignedStore(pacda_instr, oldcbuff, 8);
@@ -111,7 +111,7 @@ namespace {
             for (int i=numBuffs; i>0; i--){
               if (i == 1){
                 // regenerate the correct pacga canary for comparison
-                auto pacga2_instr = CauthIntr::pacga(F, *I, funcID);
+                auto pacga2_instr = CAuthIntr::pacga(F, *I, funcID);
                 auto cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga2_instr, "cmp");
                 TrueBB= CAuthIR::CreateEmptyBB(C, "TrueBB", &F);
                 // add basic block to handle canary check failure
@@ -125,7 +125,7 @@ namespace {
               }
               else if (i>1){
                 // add autda intrinsic 
-                auto autda_instr = CauthIntr::autda(F, *I, canary_val);
+                auto autda_instr = CAuthIntr::autda(F, *I, canary_val);
                 canary_val = Builder.CreateLoad(autda_instr);
               }
             }

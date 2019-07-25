@@ -30,4 +30,4 @@ add_subdirectory(XRay)
 add_subdirectory(Testing)
 add_subdirectory(WindowsManifest)
 
-add_subdirectory(CAUTH)
+add_subdirectory(CAuth)

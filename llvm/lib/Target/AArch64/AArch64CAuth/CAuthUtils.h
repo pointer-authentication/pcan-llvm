@@ -11,36 +11,36 @@
 #ifndef LLVM_CAUTHUTILS_H
 #define LLVM_CAUTHUTILS_H
 
-#include <memory>
-#include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "AArch64.h"
 #include "AArch64RegisterInfo.h"
 #include "AArch64InstrInfo.h"
+#include "llvm/CAuth/CAuth.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
+#include <memory>
 
-#include "llvm/CAUTH/Cauth.h"
 
 namespace llvm {
 
-  namespace CAUTH {
+  namespace CAuth {
 
-    class CauthUtils;
+    class CAuthUtils;
 
-    typedef std::shared_ptr<CauthUtils> CauthUtils_ptr;
+    typedef std::shared_ptr<CAuthUtils> CauthUtils_ptr;
 
     static inline unsigned getModifierReg() { return AArch64::X9; }
 
-    class CauthUtils {
+    class CAuthUtils {
 
     const TargetInstrInfo *TII;
     const TargetRegisterInfo *TRI;
     
-    CauthUtils() = delete;
+    CAuthUtils() = delete;
 
     public:
-      CauthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII);
+      CAuthUtils(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII);
 
       static inline CauthUtils_ptr get(const TargetRegisterInfo *TRI, const TargetInstrInfo *TII) {
-        return std::make_shared<CauthUtils>(TRI, TII);
+        return std::make_shared<CAuthUtils>(TRI, TII);
       };
 
       void convertCauthIntrinsic(MachineBasicBlock &MBB, MachineInstr &MI, unsigned instr, unsigned funcID, 

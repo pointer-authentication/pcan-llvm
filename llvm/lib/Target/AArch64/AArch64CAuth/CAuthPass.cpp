@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <iostream>
 // LLVM includes
+#include "CAuthUtils.h"
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
@@ -24,13 +24,12 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "CauthUtils.h"
+#include <iostream>
 
 #define DEBUG_TYPE "aarch64-cauth"
 
 using namespace llvm;
-using namespace llvm::CAUTH;
+using namespace llvm::CAuth;
 
 
 namespace {
@@ -76,7 +75,7 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   STI = &MF.getSubtarget<AArch64Subtarget>();
   TII = STI->getInstrInfo();
   TRI = STI->getRegisterInfo();
-  cauthUtils_ptr = CauthUtils::get(TRI, TII);
+  cauthUtils_ptr = CAuthUtils::get(TRI, TII);
 
   //Calling convention is default C (AAPCS) calling convention.
 

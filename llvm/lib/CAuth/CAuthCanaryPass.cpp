@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/CAUTH/CauthIntr.h"
+#include "llvm/CAuth/CAuthIntr.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
@@ -24,7 +24,7 @@
 #include "llvm/IR/Instructions.h"
 
 using namespace llvm;
-using namespace CAUTH;
+using namespace CAuth;
 
 #define DEBUG_TYPE "cauth-ir"
 
@@ -103,8 +103,8 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned mod) {
 
         // Generate the canary
         auto *canary = prevCanaryAlloca == nullptr ?
-                      CauthIntr::pacga(F, MI, mod) :
-                      CauthIntr::pacda(F, MI, prevCanaryAlloca);
+                      CAuthIntr::pacga(F, MI, mod) :
+                      CAuthIntr::pacda(F, MI, prevCanaryAlloca);
 
         // Store canary
         Builder.CreateAlignedStore(canary, arr_alloc, 8);
@@ -137,11 +137,11 @@ bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned mod, Value *c
         auto *canary_val = Builder.CreateLoad(canary);
 
         while (canary_val->getType() != Type::getInt64Ty(C)) {
-          auto autda= CauthIntr::autda(F, I, canary_val);
+          auto autda= CAuthIntr::autda(F, I, canary_val);
           canary_val = Builder.CreateLoad(autda);
         }
 
-        auto *pacga= CauthIntr::pacga(F, I, mod);
+        auto *pacga= CAuthIntr::pacga(F, I, mod);
         auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga, "cmp");
 
         // Generate BBs for auth failure and normal return
