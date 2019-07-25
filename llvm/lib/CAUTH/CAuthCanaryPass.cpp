@@ -35,11 +35,11 @@ STATISTIC(TotalBuffCounter, "Total number of buffers instrumented");
 
 namespace {
 
-struct CAuthIRArrays : public FunctionPass {
+struct CAuthCanaryPass : public FunctionPass {
   static char ID;
   unsigned funcID = 0;
 
-  CAuthIRArrays() : FunctionPass(ID) {}
+  CAuthCanaryPass() : FunctionPass(ID) {}
 
   bool runOnFunction(Function &F) override;
 
@@ -57,11 +57,11 @@ struct CAuthIRArrays : public FunctionPass {
 
 }
 
-char CAuthIRArrays::ID = 0;
-static RegisterPass<CAuthIRArrays> X("cauth-ir-arrays",
+char CAuthCanaryPass::ID = 0;
+static RegisterPass<CAuthCanaryPass> X("cauth-ir-arrays",
                                      "CAuth IR pass for protecting arrays");
 
-bool CAuthIRArrays::runOnFunction(Function &F) {
+bool CAuthCanaryPass::runOnFunction(Function &F) {
   ++TotalFunctionCounter;
 
   auto *canary = instrumentEntry(F, funcID);
@@ -77,7 +77,7 @@ bool CAuthIRArrays::runOnFunction(Function &F) {
   return changed;
 }
 
-Value *CAuthIRArrays::instrumentEntry(Function &F, const unsigned mod) {
+Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned mod) {
   auto &C = F.getContext();
   auto &BB = F.getEntryBlock();
 
@@ -118,7 +118,7 @@ Value *CAuthIRArrays::instrumentEntry(Function &F, const unsigned mod) {
   return prevCanaryAlloca;
 }
 
-bool CAuthIRArrays::instrumentReturn(Function &F, const unsigned mod, Value *canary) {
+bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned mod, Value *canary) {
   bool changed = false;
   auto &C = F.getContext();
 
@@ -145,14 +145,14 @@ bool CAuthIRArrays::instrumentReturn(Function &F, const unsigned mod, Value *can
         auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga, "cmp");
 
         // Generate BBs for auth failure and normal return
-        auto TrueBB = CAuthIRArrays::CreateEmptyBB(C, "cauth.ret", &F);
-        auto FalseBB = CAuthIRArrays::CreateEmptyBB(C, "cauth.fail", &F);
+        auto TrueBB = CAuthCanaryPass::CreateEmptyBB(C, "cauth.ret", &F);
+        auto FalseBB = CAuthCanaryPass::CreateEmptyBB(C, "cauth.fail", &F);
 
         // Conditionally jump to fail or okay return
         Builder.CreateCondBr(cmp, TrueBB, FalseBB);
 
         // Populate the fail BB
-        CAuthIRArrays::CreateFailBB(C, &F, FalseBB, rI->getReturnValue());
+        CAuthCanaryPass::CreateFailBB(C, &F, FalseBB, rI->getReturnValue());
 
         // Make sure the okay return works
         llvm::ReturnInst::Create(C, rI->getReturnValue(), TrueBB);
@@ -169,14 +169,14 @@ bool CAuthIRArrays::instrumentReturn(Function &F, const unsigned mod, Value *can
   return changed;
 }
 
-BasicBlock *CAuthIRArrays::CreateEmptyBB(LLVMContext &C, const Twine &Name,
+BasicBlock *CAuthCanaryPass::CreateEmptyBB(LLVMContext &C, const Twine &Name,
                                          Function *Parent,
                                          BasicBlock *InsertBefore) {
   return llvm::BasicBlock::Create(C, Name, Parent, InsertBefore);
 }
 
 // Inserts canary_chk_fail instructions into the FalseBB
-void CAuthIRArrays::CreateFailBB(LLVMContext &C, Function *F,
+void CAuthCanaryPass::CreateFailBB(LLVMContext &C, Function *F,
                                  BasicBlock *FalseBB, Value *save_ret) {
   IRBuilder<> B(FalseBB);
   Module *M = F->getParent();

@@ -11,7 +11,7 @@
 add_llvm_library(Cauth
   Cauth.cpp
   CauthIntr.cpp
-  CAuthIRArrays.cpp
+  CAuthCanaryPass.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/CAUTH
