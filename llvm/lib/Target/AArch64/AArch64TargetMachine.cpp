@@ -593,8 +593,4 @@ void AArch64PassConfig::addPreEmitPass() {
   
   if (CAUTH::useCAuth())
     addPass(createCauthPass());
-
-  if (CAUTH::useTest())
-    addPass(createTestPass());
-
 }
