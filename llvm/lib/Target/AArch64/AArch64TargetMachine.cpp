@@ -20,6 +20,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
+#include "llvm/CAuth/CAuth.h"
 #include "llvm/CodeGen/GlobalISel/IRTranslator.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
 #include "llvm/CodeGen/GlobalISel/Legalizer.h"
@@ -41,7 +42,6 @@
 #include "llvm/Transforms/Scalar.h"
 #include <memory>
 #include <string>
-#include "llvm/CAuth/CAuth.h"
 
 using namespace llvm;
 
@@ -440,6 +440,9 @@ void AArch64PassConfig::addIRPasses() {
     // invariant.
     addPass(createLICMPass());
   }
+
+  if (CAuth::useCAuth())
+    addPass(CAuth::createCAuthCanaryPass());
 }
 
 // Pass Pipeline Configuration

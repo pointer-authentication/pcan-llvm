@@ -42,3 +42,4 @@ bool llvm::CAuth::useDummy() {
 bool llvm::CAuth::useTest() {
   return EnableTest;
 }
+

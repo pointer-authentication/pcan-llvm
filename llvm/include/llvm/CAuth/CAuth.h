@@ -11,6 +11,8 @@
 #ifndef LLVM_CAUTH_H
 #define LLVM_CAUTH_H
 
+#include "llvm/Pass.h"
+
 namespace llvm {
 
 namespace CAuth {
@@ -24,6 +26,8 @@ bool useCAuth();
 bool useCAuthMod();
 bool useTest();
 bool useDummy();
+
+Pass *createCAuthCanaryPass();
 
 } // CAuth
 

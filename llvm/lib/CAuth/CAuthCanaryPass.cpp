@@ -8,6 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/CAuth/CAuth.h"
 #include "llvm/CAuth/CAuthIntr.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Attributes.h"
@@ -60,6 +61,9 @@ struct CAuthCanaryPass : public FunctionPass {
 char CAuthCanaryPass::ID = 0;
 static RegisterPass<CAuthCanaryPass> X("cauth-ir-arrays",
                                      "CAuth IR pass for protecting arrays");
+
+
+Pass *CAuth::createCAuthCanaryPass() { return new CAuthCanaryPass(); }
 
 bool CAuthCanaryPass::runOnFunction(Function &F) {
   ++TotalFunctionCounter;
