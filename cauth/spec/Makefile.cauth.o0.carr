@@ -13,17 +13,11 @@ OPT_LEVEL 	:= 0
 CFLAGS 		+= -O$(OPT_LEVEL)
 LLC_FLAGS 	+= -O=$(OPT_LEVEL)
 
-# Select SPEC configuration file
-################################
-SPEC_CONF 	:= cauth.O$(OPT_LEVEL).cfg
-
 # Add instrumentation flags
 ###########################
-CAUTH += arr
+CONFIG_LABEL := carr
 
-CONFIG_LABEL := c$(CAUTH)
-
-LLC_FLAGS 	+= -cauth=$(CAUTH)
+LLC_FLAGS 	+= -cauth=carr
 
 # Selecte tests to run
 ######################
@@ -46,6 +40,10 @@ LLVM_BUILD 	:= ${HOME}/d/llvm/build/cauth
 LLVM_PATH 	:= ${HOME}/d/llvm/build/cauth
 # Location for bin/extract-bc and other WLLVM tools
 WLLVM_PATH	:= ${HOME}/.local
+
+# Select SPEC configuration file
+################################
+SPEC_CONF 	:= SpecConf.$(PROJECT_NAME).o$(OPT_LEVEL).$(CONFIG_LABEL).cfg
 
 # Test label
 ############
