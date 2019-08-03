@@ -25,6 +25,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include <iostream>
+#include <sstream>
 
 #define DEBUG_TYPE "aarch64-cauth"
 
@@ -45,14 +46,34 @@ namespace {
    bool runOnMachineFunction(MachineFunction &) override;
 
  private:
-    const AArch64Subtarget *STI = nullptr;
-    const AArch64InstrInfo *TII = nullptr;
-    const AArch64RegisterInfo *TRI = nullptr;
+   const AArch64Subtarget *STI = nullptr;
+   const AArch64InstrInfo *TII = nullptr;
+   const AArch64RegisterInfo *TRI = nullptr;
 
-    CauthUtils_ptr cauthUtils_ptr = nullptr;
+   CauthUtils_ptr cauthUtils_ptr = nullptr;
 
-    uint16_t funcID=0;
+   void convertModIntrinsic(MachineBasicBlock &MBB,
+                            MachineInstr &MI,
+                            uint16_t funcID) {
+     const unsigned reg = MI.getOperand(0).getReg();
+     const auto &DL = MI.getDebugLoc();
+     BuildMI(MBB, MI, DL, TII->get(AArch64::ADDXri), reg)
+         .addReg(AArch64::SP)
+         .addImm(0)
+         .addImm(0);
+     auto ret = BuildMI(MBB, MI, DL, TII->get(AArch64::MOVKXi), reg)
+         .addReg(reg)
+         .addImm(funcID)
+         .addImm(48);
+     MI.removeFromParent();
+   }
 
+   static inline uint16_t getFuncID(const Function &F) {
+      uint16_t funcID;
+      std::istringstream iss(F.getFnAttribute("cauth-funcid").getValueAsString());
+      iss >> funcID;
+      return funcID;
+    }
  };
 } // end anonymous namespace
 
@@ -68,7 +89,13 @@ bool CauthPass::doInitialization(Module &M) {
 
 bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
-  ++funcID;
+  const auto &F = MF.getFunction();
+
+  if (!F.hasFnAttribute("cauth-funcid"))
+    return false;
+
+  auto funcID = getFuncID(F);
+
   unsigned ispacga=0;
   unsigned ispacda=0;
   unsigned isautda=0;
@@ -80,15 +107,21 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
   //Calling convention is default C (AAPCS) calling convention.
 
   for (auto &MBB : MF) {
-    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end(); MIi++) {
-      const auto MIOpcode = MIi->getOpcode();
-      switch(MIOpcode) {
+    for (auto MIi = MBB.instr_begin(); MIi != MBB.instr_end();) {
+      auto &MI = *MIi;
+      ++MIi;
+
+      switch(MI.getOpcode()) {
         default:
+          break;
+        case AArch64::CAUTH_PRO_MOD:
+          LLVM_FALLTHROUGH;
+        case AArch64::CAUTH_EPI_MOD:
+          convertModIntrinsic(MBB, MI, funcID);
           break;
         case AArch64::CAUTH_PACGA:
         { 
           ++ispacga;
-          auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACGA, funcID, ispacga, ispacda, isautda);
           found = true; 
           break;
@@ -97,7 +130,6 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         case AArch64::CAUTH_PACDA:
         {
           ++ispacda;
-          auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::PACDA, funcID, ispacga, ispacda, isautda);
           found = true; // make sure we return true when we modify stuff
           break;
@@ -105,7 +137,6 @@ bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
         case AArch64::CAUTH_AUTDA:
         {
           ++isautda;  
-          auto &MI = *MIi--;
           cauthUtils_ptr->convertCauthIntrinsic(MBB, MI, AArch64::AUTDA, funcID, ispacga, ispacda, isautda);
           found = true; // make sure we return true when we modify stuff
           break;

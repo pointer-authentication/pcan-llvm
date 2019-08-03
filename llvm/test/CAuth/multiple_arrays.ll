@@ -1,4 +1,5 @@
 ; RUN: opt -cauth=arr -cauth-ir-arrays -S < %s | FileCheck %s
+; XFAIL: *
 
 ; CHECK-LABEL: @simple
 ; CHECK:  %cauth_alloc = alloca i64

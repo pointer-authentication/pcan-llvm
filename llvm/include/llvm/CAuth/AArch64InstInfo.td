@@ -9,6 +9,13 @@
 //===----------------------------------------------------------------------===//
 
 
+let isPseudo = 1, hasNoSchedulingInfo = 1 in {
+  def CAUTH_PRO_MOD : Pseudo<(outs GPR64:$dst), (ins),
+                              [(set i64:$dst, (int_cauth_pro_mod))]>;
+
+  def CAUTH_EPI_MOD : Pseudo<(outs GPR64:$dst), (ins),
+                              [(set i64:$dst, (int_cauth_epi_mod))]>;
+}
 
 let isPseudo = 1 in {
   def CAUTH_PACGA : Pseudo<(outs GPR64:$dst),
