@@ -62,11 +62,11 @@ char CAuthCanaryPass::ID = 0;
 static RegisterPass<CAuthCanaryPass> X("cauth-ir-arrays",
                                      "CAuth IR pass for protecting arrays");
 
-
 Pass *CAuth::createCAuthCanaryPass() { return new CAuthCanaryPass(); }
 
 bool CAuthCanaryPass::runOnFunction(Function &F) {
   ++TotalFunctionCounter;
+  ++funcID;
 
   auto *canary = instrumentEntry(F, funcID);
 

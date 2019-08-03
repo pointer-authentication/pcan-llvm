@@ -9,7 +9,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/CAuth/CAuth.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
@@ -26,10 +25,13 @@ static cl::opt<CAuthType> CAuthTypeOpt(
     cl::values(clEnumValN(CAuthNone, "none", "Disable CAuth"),
                clEnumValN(CAuthArrays, "arr", "Protect all stack buffers")));
 
-static cl::opt<bool> EnableTest("test", cl::Hidden,
-                                      cl::desc("Test pass for MIR"),
-                                      cl::init(false));
+static cl::opt<bool> CAuthTargetOnly("cauth-noir", cl::Hidden,
+                                     cl::desc("Do not run the CAuth IR passes in Target"),
+                                     cl::init(false));
 
+bool llvm::CAuth::runCAuthCanaryPassInTarget() {
+  return CAuthTypeOpt != CAuthNone && !CAuthTargetOnly;
+}
 
 bool llvm::CAuth::useCAuth() {
   return CAuthTypeOpt != CAuthNone;
@@ -38,8 +40,3 @@ bool llvm::CAuth::useCAuth() {
 bool llvm::CAuth::useDummy() {
   return UseDummyInstructions;
 }
-
-bool llvm::CAuth::useTest() {
-  return EnableTest;
-}
-
