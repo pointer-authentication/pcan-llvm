@@ -441,7 +441,7 @@ void AArch64PassConfig::addIRPasses() {
     addPass(createLICMPass());
   }
 
-  if (CAuth::useCAuth())
+  if (CAuth::runCAuthCanaryPassInTarget())
     addPass(CAuth::createCAuthCanaryPass());
 }
 

@@ -22,9 +22,8 @@ enum CAuthType{
   CAuthArrays
 };
 
+bool runCAuthCanaryPassInTarget();
 bool useCAuth();
-bool useCAuthMod();
-bool useTest();
 bool useDummy();
 
 Pass *createCAuthCanaryPass();
