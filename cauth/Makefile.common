@@ -34,7 +34,7 @@ QEMU 		?=
 
 # Set some other default values
 NOCAUTH 	?= # Set to Yes to disable cauth
-O_LEVEL 	?= 0
+O_LEVEL 	?= 2
 
 # Locate some binaryies based on above paths
 LLVM_LINKER = ${LLVM_PATH}/bin/llvm-link
@@ -82,7 +82,7 @@ LDFLAGS += --sysroot=$(SYSROOT) -B$(GCC_BASE)
 
 LLC_FLAGS += -march=aarch64 -mattr=v8.3a
 
-ifdef ($(O_LEVEL))
+ifdef O_LEVEL
 	CFLAGS 		+= -O$(O_LEVEL)
 	OPT_FLAGS 	+= -O$(O_LEVEL)
 	LLC_FLAGS 	+= -O=$(O_LEVEL)

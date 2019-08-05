@@ -5,27 +5,31 @@
 # This code is released under Apache 2.0 license
 #
 
-default: all
+
+all: tests
 
 include Makefile.common
+
+DEST ?= build
 
 TESTS := arrays
 TESTS += hack01
 
-all: tests
+DEST_TEST = $(addprefix $(DEST)/,$(TESTS:=.out))
 
-$(LINARO_SHARED):
-	mkdir -p $(LINARO_SHARED)
+$(DEST):
+	mkdir -p $(DEST)
 
-tests: $(LINARO_SHARED) $(TESTS)
-	cp run_all.sh $(LINARO_SHARED)
+tests: $(DEST) $(DEST_TEST)
+	cp run_all.sh $(DEST)
 
-.PHONY: $(TESTS)
-$(TESTS):
-	make -C $@ send2guest
+$(DEST_TEST): $(DEST)/%.out : $(DEST)
+	make -C $*
+	cp $*/$*.out $@
 
 clean:: $(TESTS:=.clean)
-	if [ -d $(LINARO_SHARED) ];then rm -f $(LINARO_SHARED)/*.out $(LINARO_SHARED)/*.sh; fi
+	if [ -d $(DEST) ];then rm -f $(DEST)/*.out $(DEST)/*.sh; fi
+	if [ -d $(DEST) ];then rmdir -p --ignore-fail-on-non-empty $(DEST); fi
 
 $(TESTS:=.clean): %.clean :
 	make -C $* clean
