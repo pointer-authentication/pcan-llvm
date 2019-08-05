@@ -13,11 +13,9 @@
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instruction.h"
@@ -76,12 +74,6 @@ private:
     return Intrinsic::getDeclaration(F.getParent(), Intrinsic::ca_autda,
                                      V->getType());
   }
-
-  static inline Constant *getFuncIDConstant(LLVMContext &C,
-                                            const unsigned funcID) {
-    return Constant::getIntegerValue(Type::getInt64Ty(C),
-                                     APInt(64,funcID));
-  }
 };
 
 }
@@ -106,7 +98,7 @@ bool CAuthCanaryPass::runOnFunction(Function &F) {
 
   ++FunctionCounter;
 
-  bool changed = instrumentReturn(F, funcID, canary);
+  const bool changed = instrumentReturn(F, funcID, canary);
 
   assert(changed && "prologue instrumented but not the epilogue!?!");
   return changed;
