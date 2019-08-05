@@ -10,33 +10,29 @@
 
 
 let isPseudo = 1, hasNoSchedulingInfo = 1 in {
+
   def CAUTH_PRO_MOD : Pseudo<(outs GPR64:$dst), (ins),
                               [(set i64:$dst, (int_cauth_pro_mod))]>;
 
   def CAUTH_EPI_MOD : Pseudo<(outs GPR64:$dst), (ins),
                               [(set i64:$dst, (int_cauth_epi_mod))]>;
-}
 
-let isPseudo = 1 in {
   def CAUTH_PACGA : Pseudo<(outs GPR64:$dst),
                            (ins GPR64:$src),
-                           [(set i64:$dst, (int_ca_pacga GPR64:$src))]>,
-                    Sched<[]>;
-}
+                           [(set i64:$dst, (int_ca_pacga GPR64:$src))]>;
 
-let isPseudo = 1 in {
   def CAUTH_PACDA : Pseudo<(outs GPR64:$dst),
-                           (ins GPR64:$ptr),
-                           [(set i64:$dst, (int_ca_pacda GPR64:$ptr))],
-                           "$dst = $ptr">,
-                    Sched<[]>;
-}
+                           (ins GPR64:$ptr, GPR64:$mod),
+                           [(set i64:$dst, (int_ca_pacda
+                                            GPR64:$ptr,
+                                            GPR64:$mod))],
+                           "$dst = $ptr">;
 
-let isPseudo = 1 in {
   def CAUTH_AUTDA : Pseudo<(outs GPR64:$dst),
-                           (ins GPR64:$ptr),
-                           [(set i64:$dst, (int_ca_autda GPR64:$ptr))],
-                           "$dst = $ptr">,
-                    Sched<[]>;
+                           (ins GPR64:$ptr, GPR64:$mod),
+                           [(set i64:$dst, (int_ca_autda
+                                            GPR64:$ptr,
+                                            GPR64:$mod))],
+                           "$dst = $ptr">;
 }
 

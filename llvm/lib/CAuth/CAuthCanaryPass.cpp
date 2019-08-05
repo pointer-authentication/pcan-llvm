@@ -68,15 +68,13 @@ private:
   }
 
   static inline Function *getPacdaDecl(Function &F, Value *V) {
-    Type *arg_types[] = { V->getType() };
-    return Intrinsic::getDeclaration(F.getParent(),
-                                     Intrinsic::ca_pacda, arg_types);
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::ca_pacda,
+                                     V->getType());
   }
 
   static inline Function *getAutdaDecl(Function &F, Value *V) {
-    Type *arg_types[] = { V->getType() };
-    return Intrinsic::getDeclaration(F.getParent(),
-                                     Intrinsic::ca_autda, arg_types);
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::ca_autda,
+                                     V->getType());
   }
 
   static inline Constant *getFuncIDConstant(LLVMContext &C,
@@ -147,7 +145,7 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned funcID) {
         auto *canary = prevCanaryAlloca == nullptr ?
                        Builder.CreateCall(getPacgaDecl(F), mod, "pga") :
                        Builder.CreateCall(getPacdaDecl(F, prevCanaryAlloca),
-                                          prevCanaryAlloca, "pda");
+                                          { prevCanaryAlloca, mod }, "pda");
 
         // Store canary
         Builder.CreateAlignedStore(canary, arr_alloc, 8);
@@ -188,13 +186,14 @@ bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned funcID,
 
         while (canary_val->getType() != Type::getInt64Ty(C)) {
           auto autda = Builder.CreateCall(getAutdaDecl(F, canary_val),
-                                          canary_val, "eda");
+                                          { canary_val, mod }, "eda");
 
           canary_val = Builder.CreateLoad(autda);
         }
 
         auto *pacga = Builder.CreateCall(getPacgaDecl(F), mod, "ega");
-        auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga, "cmp");
+        auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ,
+                                       canary_val, pacga, "cmp");
 
         // Generate BBs for auth failure and normal return
         auto TrueBB = CAuthCanaryPass::CreateEmptyBB(C, "cauth.ret", &F);
