@@ -61,7 +61,6 @@ add_llvm_target(AArch64CodeGen
   AArch64SIMDInstrOpt.cpp
 
   AArch64CAuth/AArch64CAuthPass.cpp
-  AArch64CAuth/CAuthUtils.cpp
 
   DEPENDS
   intrinsics_gen

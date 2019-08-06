@@ -9,7 +9,6 @@
 //===----------------------------------------------------------------------===//
 
 // LLVM includes
-#include "CAuthUtils.h"
 #include "AArch64.h"
 #include "AArch64Subtarget.h"
 #include "AArch64RegisterInfo.h"
@@ -30,8 +29,6 @@
 #define DEBUG_TYPE "aarch64-cauth"
 
 using namespace llvm;
-using namespace llvm::CAuth;
-
 
 namespace {
  class AArch64CAuthPass : public MachineFunctionPass {
