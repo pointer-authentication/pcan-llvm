@@ -26,15 +26,15 @@ MAKEFILE_DIR := $(MAKEFILE_DIR:/=)
 # PATH CONFIGURATION                                         #
 # These can be overriden in Makefile.conf or on command line #
 ##############################################################
-LLVM_PATH	?= $(MAKEFILE_DIR)/../build/cauth
-GCC_BASE 	?= $(MAKEFILE_DIR)/gcc
-SYSROOT 	?= $(MAKEFILE_DIR)/sysroot
+LLVM_PATH	?= $(MAKEFILE_DIR)/../../build/cauth
+GCC_BASE 	?= $(MAKEFILE_DIR)/../gcc
+SYSROOT 	?= $(MAKEFILE_DIR)/../sysroot
 OUTPUT_DIR	?= $(MAKEFILE_DIR)/build
 QEMU 		?=
 
 # Set some other default values
 NOCAUTH 	?= # Set to Yes to disable cauth
-O_LEVEL 	?= 0
+O_LEVEL 	?= 2
 
 # Locate some binaryies based on above paths
 LLVM_LINKER = ${LLVM_PATH}/bin/llvm-link
@@ -82,7 +82,7 @@ LDFLAGS += --sysroot=$(SYSROOT) -B$(GCC_BASE)
 
 LLC_FLAGS += -march=aarch64 -mattr=v8.3a
 
-ifdef ($(O_LEVEL))
+ifdef O_LEVEL
 	CFLAGS 		+= -O$(O_LEVEL)
 	OPT_FLAGS 	+= -O$(O_LEVEL)
 	LLC_FLAGS 	+= -O=$(O_LEVEL)

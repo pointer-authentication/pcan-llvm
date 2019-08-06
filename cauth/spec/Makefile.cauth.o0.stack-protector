@@ -1,3 +1,4 @@
+# vim: ft=make
 #
 # Author: Hans Liljestrand <hans@liljestrand.dev>
 # Copyright: Secure Systems Group, Aalto University, https://ssg.aalto.fi
@@ -5,52 +6,7 @@
 # This code is released under Apache 2.0 license
 #
 
-PROJECT_NAME	:= cauth
+CONFIG_LABEL 	:= stack-protector
+LLC_FLAGS 		+= -cauth=none
 
-# Set optimization level
-########################
-OPT_LEVEL 	:= 0
-CFLAGS 		+= -O$(OPT_LEVEL)
-LLC_FLAGS 	+= -O=$(OPT_LEVEL)
-
-# Add instrumentation flags
-###########################
-CONFIG_LABEL := stack-protector
-
-LLC_FLAGS 	+= -cauth=none
-
-# Selecte tests to run
-######################
-# TESTS += 502.gcc_r
-TESTS 		+= 505.mcf_r
-TESTS 		+= 519.lbm_r
-TESTS 		+= 525.x264_r
-TESTS 		+= 538.imagick_r
-TESTS 		+= 544.nab_r
-TESTS 		+= 557.xz_r
-
-# Paths to used tools
-#####################
-# The gcc installation to use, binaries are expected to be in ${GCC_BASE}/bin
-GCC_BASE 	:= ${HOME}/opt/linaro/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu
-# The (Linaro) sysroot to use
-SYSROOT 	:= ${HOME}/opt/linaro/sysroot-glibc-linaro-2.25-2018.05-aarch64-linux-gnu
-# The LLVM build directory (wil be used for binaries, unless overwritten below
-LLVM_BUILD 	:= ${HOME}/d/llvm/build/cauth
-LLVM_PATH 	:= ${HOME}/d/llvm/build/cauth
-# Location for bin/extract-bc and other WLLVM tools
-WLLVM_PATH	:= ${HOME}/.local
-
-# Select SPEC configuration file
-################################
-SPEC_CONF 	:= SpecConf.$(PROJECT_NAME).o$(OPT_LEVEL).$(CONFIG_LABEL).cfg
-
-# Test label
-############
-GIT_REVISION		:= $(shell grep LLVM_REVISION ${LLVM_BUILD}/include/llvm/Support/VCSRevision.h | sed 's/.*REVISION "git-//' | sed 's/"$$//')
-
-TEST_DIR_BASE 	:= $(PROJECT_NAME).$(GIT_REVISION)
-TEST_DIR_SUB	:= o$(OPT_LEVEL).$(CONFIG_LABEL)
-TEST_PATH		:= $(TEST_DIR_BASE)/$(TEST_DIR_SUB)
-
-# vim: ft=make
+include Makefile.cauth.o0

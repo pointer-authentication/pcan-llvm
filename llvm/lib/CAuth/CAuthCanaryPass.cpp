@@ -9,20 +9,18 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/CAuth/CAuth.h"
-#include "llvm/CAuth/CAuthIntr.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
 
 using namespace llvm;
 using namespace CAuth;
@@ -38,14 +36,14 @@ namespace {
 
 struct CAuthCanaryPass : public FunctionPass {
   static char ID;
-  unsigned funcID = 0;
+  unsigned m_funcID = 0;
 
   CAuthCanaryPass() : FunctionPass(ID) {}
 
   bool runOnFunction(Function &F) override;
 
-  static Value *instrumentEntry(Function &F, unsigned mod);
-  static bool instrumentReturn(Function &F, unsigned mod, Value *canary);
+  static Value *instrumentEntry(Function &F, unsigned funcID);
+  static bool instrumentReturn(Function &F, unsigned funcID, Value *canary);
 
   static BasicBlock *CreateEmptyBB(LLVMContext &C, const Twine &Name = "",
                                    Function *Parent = nullptr,
@@ -54,9 +52,32 @@ struct CAuthCanaryPass : public FunctionPass {
   static void CreateFailBB(LLVMContext &C, Function *F, BasicBlock *FalseBB,
                            Value *save_ret);
 
+private:
+  static inline Function *getProModDecl(Function &F) {
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::cauth_pro_mod);
+  }
+
+  static inline Function *getEpiModDecl(Function &F) {
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::cauth_epi_mod);
+  }
+
+  static inline Function *getPacgaDecl(Function &F) {
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::ca_pacga);
+  }
+
+  static inline Function *getPacdaDecl(Function &F, Value *V) {
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::ca_pacda,
+                                     V->getType());
+  }
+
+  static inline Function *getAutdaDecl(Function &F, Value *V) {
+    return Intrinsic::getDeclaration(F.getParent(), Intrinsic::ca_autda,
+                                     V->getType());
+  }
 };
 
 }
+
 
 char CAuthCanaryPass::ID = 0;
 static RegisterPass<CAuthCanaryPass> X("cauth-ir-arrays",
@@ -66,7 +87,9 @@ Pass *CAuth::createCAuthCanaryPass() { return new CAuthCanaryPass(); }
 
 bool CAuthCanaryPass::runOnFunction(Function &F) {
   ++TotalFunctionCounter;
-  ++funcID;
+  const unsigned funcID = ++m_funcID;
+
+  F.addFnAttr("cauth-funcid", std::to_string(funcID));
 
   auto *canary = instrumentEntry(F, funcID);
 
@@ -75,18 +98,20 @@ bool CAuthCanaryPass::runOnFunction(Function &F) {
 
   ++FunctionCounter;
 
-  bool changed = instrumentReturn(F, funcID, canary);
+  const bool changed = instrumentReturn(F, funcID, canary);
 
   assert(changed && "prologue instrumented but not the epilogue!?!");
   return changed;
 }
 
-Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned mod) {
+Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned funcID) {
   auto &C = F.getContext();
   auto &BB = F.getEntryBlock();
 
   Value *prevCanaryAlloca = nullptr;
   Type *buffTy = Type::getInt64Ty(C);
+
+  Value *mod = nullptr;
 
   for (auto &MI : BB) {
     if (isa<AllocaInst>(MI)) {
@@ -95,9 +120,12 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned mod) {
       if (alloca->getAllocatedType()->isArrayTy()) {
         ++TotalBuffCounter;
         ++ArrayBuffCounter;
-
         // Instrument buffer allocations
         IRBuilder<> Builder(&MI);
+
+        // Make sure we have a modifier
+        if (mod == nullptr)
+          mod = Builder.CreateCall(getProModDecl(F));
 
         if (prevCanaryAlloca != nullptr) // Update type unless this is first canary
           buffTy = PointerType::get(buffTy, 0);
@@ -107,8 +135,9 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned mod) {
 
         // Generate the canary
         auto *canary = prevCanaryAlloca == nullptr ?
-                      CAuthIntr::pacga(F, MI, mod) :
-                      CAuthIntr::pacda(F, MI, prevCanaryAlloca);
+                       Builder.CreateCall(getPacgaDecl(F), mod, "pga") :
+                       Builder.CreateCall(getPacdaDecl(F, prevCanaryAlloca),
+                                          { prevCanaryAlloca, mod }, "pda");
 
         // Store canary
         Builder.CreateAlignedStore(canary, arr_alloc, 8);
@@ -122,9 +151,12 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned mod) {
   return prevCanaryAlloca;
 }
 
-bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned mod, Value *canary) {
+bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned funcID,
+                                       Value *canary) {
   bool changed = false;
   auto &C = F.getContext();
+
+  Value *mod = nullptr;
 
   for (auto &BB : F) {
     // Skip BBs added by cauth instrumentation
@@ -137,16 +169,23 @@ bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned mod, Value *c
       if (isa<ReturnInst>(I)) {
         IRBuilder<> Builder(&I);
 
+        // Make sure we have a modifier
+        if (mod == nullptr)
+          mod = Builder.CreateCall(getEpiModDecl(F));
+
         auto *rI = dyn_cast<llvm::ReturnInst>(&I);
         auto *canary_val = Builder.CreateLoad(canary);
 
         while (canary_val->getType() != Type::getInt64Ty(C)) {
-          auto autda= CAuthIntr::autda(F, I, canary_val);
+          auto autda = Builder.CreateCall(getAutdaDecl(F, canary_val),
+                                          { canary_val, mod }, "eda");
+
           canary_val = Builder.CreateLoad(autda);
         }
 
-        auto *pacga= CAuthIntr::pacga(F, I, mod);
-        auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ, canary_val, pacga, "cmp");
+        auto *pacga = Builder.CreateCall(getPacgaDecl(F), mod, "ega");
+        auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ,
+                                       canary_val, pacga, "cmp");
 
         // Generate BBs for auth failure and normal return
         auto TrueBB = CAuthCanaryPass::CreateEmptyBB(C, "cauth.ret", &F);

@@ -1,23 +1,21 @@
 ; RUN: llc -verify-machineinstrs -mtriple=aarch64-none-linux-gnu -mattr=v8.3a -cauth=arr < %s | FileCheck %s
-; XFAIL: *
 
 ; CHECK-LABEL: @simple
 ; CHECK: mov [[MOD1:x[0-9]+]], sp
 ; CHECK: movk [[MOD1]], #{{[0-9]+}}, lsl #48
-; CHECK: pacga [[C1:x[0-9]+]], xzr, [[MOD1]]
+; CHECK: pacga [[C1:x[0-9]+]], [[MOD1]], [[MOD1]]
 ; CHECK: pacda [[C2:x[0-9]+]], [[MOD1]]
-; CHECK: str [[C1]], [[C1_ADDR:.*$]]
-; CHECK: str [[C2]], [[C2_ADDR:.*$]]
+; CHECK-DAG: st{{[rp].*}}[[C1]]
+; CHECK-DAG: st{{[rp].*}}[[C2]]
 
 ; CHECK: bl expose
 
-; CHECK-DAG: ldr [[SC2:x[0-9]+]], [[C2_ADDR]]
 ; CHECK-DAG: mov [[MOD2:x[0-9]+]], sp
 ; CHECK-DAG: movk [[MOD2]], #{{[0-9]+}}, lsl #48
-; CHECK: autda [[SC2]], [[MOD2]]
+; CHECK: autda [[SC2:x[0-9]+]], [[MOD2]]
 ; CHECK-DAG: ldr [[SC1:x[0-9]+]], {{\[}}[[SC2]]{{\]}}
 ; // Make sure we always recreate the canary here!
-; CHECK-DAG: pacga [[REF_CAN:x[0-9]+]], xzr, [[MOD2]]
+; CHECK-DAG: pacga [[REF_CAN:x[0-9]+]], [[MOD2]], [[MOD2]]
 ; CHECK: cmp [[SC1]], [[REF_CAN]]
 ; CHECK: ret
 define hidden void @simple() {
