@@ -34,11 +34,11 @@ using namespace llvm::CAuth;
 
 
 namespace {
- class CauthPass : public MachineFunctionPass {
+ class AArch64CAuthPass : public MachineFunctionPass {
 
  public:
    static char ID;
-   CauthPass() :
+   AArch64CAuthPass() :
    MachineFunctionPass(ID) {}
    StringRef getPassName() const override { return DEBUG_TYPE; }
 
@@ -78,16 +78,16 @@ namespace {
 } // end anonymous namespace
 
 FunctionPass *llvm::createCauthPass() {
-  return new CauthPass();
+  return new AArch64CAuthPass();
 }
 
-char CauthPass::ID = 0;
+char AArch64CAuthPass::ID = 0;
 
-bool CauthPass::doInitialization(Module &M) {
+bool AArch64CAuthPass::doInitialization(Module &M) {
   return true;
 }
 
-bool CauthPass::runOnMachineFunction(MachineFunction &MF) {
+bool AArch64CAuthPass::runOnMachineFunction(MachineFunction &MF) {
   bool found = false;
   const auto &F = MF.getFunction();
 
