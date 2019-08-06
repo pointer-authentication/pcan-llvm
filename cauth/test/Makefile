@@ -12,10 +12,9 @@ include Makefile.common
 
 DEST ?= build
 
-TESTS := arrays
-TESTS += hack01
+TESTS = $(filter-out build/,$(wildcard */))
 
-DEST_TEST = $(addprefix $(DEST)/,$(TESTS:=.out))
+DEST_TEST = $(addprefix $(DEST)/,$(TESTS:/=.out))
 
 $(DEST):
 	mkdir -p $(DEST)

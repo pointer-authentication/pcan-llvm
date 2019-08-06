@@ -26,9 +26,9 @@ MAKEFILE_DIR := $(MAKEFILE_DIR:/=)
 # PATH CONFIGURATION                                         #
 # These can be overriden in Makefile.conf or on command line #
 ##############################################################
-LLVM_PATH	?= $(MAKEFILE_DIR)/../build/cauth
-GCC_BASE 	?= $(MAKEFILE_DIR)/gcc
-SYSROOT 	?= $(MAKEFILE_DIR)/sysroot
+LLVM_PATH	?= $(MAKEFILE_DIR)/../../build/cauth
+GCC_BASE 	?= $(MAKEFILE_DIR)/../gcc
+SYSROOT 	?= $(MAKEFILE_DIR)/../sysroot
 OUTPUT_DIR	?= $(MAKEFILE_DIR)/build
 QEMU 		?=
 
