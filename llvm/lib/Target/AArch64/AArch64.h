@@ -61,6 +61,8 @@ FunctionPass *createAArch64PreLegalizeCombiner();
 FunctionPass *createCauthPass();
 FunctionPass *createCauthModPass();
 
+FunctionPass *createAArch64DummyPaPass();
+
 void initializeAArch64A53Fix835769Pass(PassRegistry&);
 void initializeAArch64A57FPLoadBalancingPass(PassRegistry&);
 void initializeAArch64AdvSIMDScalarPass(PassRegistry&);
