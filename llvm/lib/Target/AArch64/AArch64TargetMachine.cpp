@@ -152,6 +152,10 @@ static cl::opt<bool>
                         cl::desc("Enable the AAcrh64 branch target pass"),
                         cl::init(true));
 
+static cl::opt<bool> EnableDummyPa("aarch64-dummy-pa", cl::Hidden,
+                                   cl::desc("Convert PAauth instrs to non-PA analogues"),
+                                   cl::init(true));
+
 extern "C" void LLVMInitializeAArch64Target() {
   // Register the target.
   RegisterTargetMachine<AArch64leTargetMachine> X(getTheAArch64leTarget());
@@ -596,4 +600,7 @@ void AArch64PassConfig::addPreEmitPass() {
   
   if (CAuth::useCAuth())
     addPass(createCauthPass());
+
+  if (EnableDummyPa)
+    addPass(createAArch64DummyPaPass());
 }
