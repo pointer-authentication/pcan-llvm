@@ -9,4 +9,4 @@
 CONFIG_LABEL 	:= stack-protector
 LLC_FLAGS 		+= -cauth=none
 
-include Makefile.cauth.o0
+include Makefile.cauth
