@@ -7,6 +7,8 @@
 #
 
 tests="arrays"
+tests="$tests arrays-dummy"
+tests="$tests stack_reordering"
 fails="hack01"
 xfails=""
 
