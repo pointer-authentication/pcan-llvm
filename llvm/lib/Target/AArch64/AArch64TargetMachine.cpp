@@ -154,7 +154,7 @@ static cl::opt<bool>
 
 static cl::opt<bool> EnableDummyPa("aarch64-dummy-pa", cl::Hidden,
                                    cl::desc("Convert PAauth instrs to non-PA analogues"),
-                                   cl::init(true));
+                                   cl::init(false));
 
 extern "C" void LLVMInitializeAArch64Target() {
   // Register the target.
