@@ -34,6 +34,8 @@ STATISTIC(TotalBuffCounter, "Total number of buffers instrumented");
 
 namespace {
 
+constexpr StringLiteral failMsg  = "\n***Canary Check Failed in %s***\nExiting....\n\n";
+
 struct CAuthCanaryPass : public FunctionPass {
   static char ID;
   unsigned m_funcID = 0;
@@ -53,6 +55,7 @@ struct CAuthCanaryPass : public FunctionPass {
                            Value *save_ret);
 
 private:
+
   static inline Function *getProModDecl(Function &F) {
     return Intrinsic::getDeclaration(F.getParent(), Intrinsic::cauth_pro_mod);
   }
@@ -220,21 +223,27 @@ BasicBlock *CAuthCanaryPass::CreateEmptyBB(LLVMContext &C, const Twine &Name,
 
 // Inserts canary_chk_fail instructions into the FalseBB
 void CAuthCanaryPass::CreateFailBB(LLVMContext &C, Function *F,
-                                 BasicBlock *FalseBB, Value *save_ret) {
+                                   BasicBlock *FalseBB, Value *save_ret) {
   IRBuilder<> B(FalseBB);
-  Module *M = F->getParent();
-  auto arg = B.CreateGlobalString(
-      "\n***Canary Check Failed***\nExiting....\n\n", "__canary_chk_fail");
-  // print "canary check failed" message
-  Constant *printfFunc = M->getOrInsertFunction("printf", FunctionType::get(
-      IntegerType::getInt32Ty(C),
-      PointerType::get(Type::getInt8Ty(C), 0)));
-  B.CreateCall(printfFunc, {arg}, "printfCall");
-  Value *one = ConstantInt::get(Type::getInt32Ty(M->getContext()), 1);
-  FunctionType *fType = FunctionType::get(Type::getVoidTy(C),
-                                          Type::getInt32Ty(C), false);
-  // exit
-  Constant *exitF = M->getOrInsertFunction("exit", fType);
-  B.CreateCall(exitF, one);
-  llvm::ReturnInst::Create(C, save_ret, FalseBB);
+  Module *const M = F->getParent();
+
+  // print fail message
+  B.CreateCall(M->getOrInsertFunction(
+      "printf",
+      FunctionType::get(
+          IntegerType::getInt32Ty(C),
+          PointerType::get(Type::getInt8Ty(C), 0))),
+               {
+                   B.CreateGlobalString(failMsg, "__canary_chk_fail"),
+                   B.CreateGlobalString(F->getName())
+               });
+
+  // insert exit
+  auto exit = B.CreateCall(M->getOrInsertFunction(
+          "exit",
+          FunctionType::get(Type::getVoidTy(C), Type::getInt32Ty(C), false)),
+               Constant::getNullValue(Type::getInt32Ty(C)));
+  exit->setDoesNotReturn();
+  exit->setTailCall(true);
+  B.CreateRet(save_ret);
 }
