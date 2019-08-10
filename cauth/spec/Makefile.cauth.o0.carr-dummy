@@ -7,6 +7,7 @@
 #
 
 CONFIG_LABEL 	:= carr
+TEST_LABEL		:= carr-dummy
 LLC_FLAGS 		+= -cauth=arr -aarch64-dummy-pa
 
 include Makefile.cauth
