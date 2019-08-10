@@ -101,7 +101,7 @@ endif
 print-%: ; @echo $* = $($*)
 
 $(BIN): $(SOURCES)
-	$(CLANG) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	$(CLANG) $(CFLAGS) $(LDFLAGS) $^ -o $@ --static
 
 $(BIN:=.opt.ll): %.opt.ll : %.ll
 	$(OPT) $(OPT_FLAGS) -S < $< > $@
