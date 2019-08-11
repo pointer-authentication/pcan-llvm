@@ -121,35 +121,11 @@ bool AArch64DumyyPa::convertPACGA(MachineBasicBlock &MBB, MachineInstr &MI) {
   auto src = MI.getOperand(1);
   auto mod = MI.getOperand(2);
 
-  if (dst.getReg() != mod.getReg()) {
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ORRXrs)).add(dst).addUse(AArch64::XZR).add(src).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(37);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(97);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs)).add(dst).add(dst).add(mod).addImm(0);
-  } else {
-    RegScavenger RS;
-    RS.enterBasicBlock(MBB);
-    unsigned tmp = 0;
-
-    for (MachineBasicBlock::iterator I = MBB.begin(); I != MBB.end(); I++) {
-      if (I->getOpcode() == AArch64::PACGA) {
-        RS.forward(std::prev(I));
-        continue;
-      }
-
-      tmp = RS.FindUnusedReg(&AArch64::GPR64commonRegClass);
-      break;
-    }
-
-    if (tmp == 0) // FIXME: This probably shouldn't happen, but...
-      llvm_unreachable("Unable to find temporary register");
-
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ORRXrs)).addDef(tmp).addUse(AArch64::XZR).add(mod).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::ORRXrs)).add(dst).addDef(AArch64::XZR).add(mod).addImm(0);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(37);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(97);
-    BuildMI(MBB, MI, DL, TII->get(AArch64::EORXrs)).add(dst).add(dst).addUse(tmp).addImm(0);
-  }
+  assert(src.getReg() == mod.getReg() && "always assume src == mod");
+  BuildMI(MBB, MI, DL, TII->get(AArch64::ORRXrs)).add(dst).addUse(AArch64::XZR).add(src).addImm(0);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(37);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(97);
+  BuildMI(MBB, MI, DL, TII->get(AArch64::EORXri)).add(dst).add(dst).addImm(12);
 
   MI.removeFromParent();
   return true;
