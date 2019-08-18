@@ -115,6 +115,7 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned funcID) {
   Type *buffTy = Type::getInt64Ty(C);
 
   Value *mod = nullptr;
+  Value *pacga = nullptr;
 
   for (auto &MI : BB) {
     if (isa<AllocaInst>(MI)) {
@@ -137,10 +138,12 @@ Value *CAuthCanaryPass::instrumentEntry(Function &F, const unsigned funcID) {
         auto *arr_alloc = Builder.CreateAlloca(buffTy, nullptr, "cauth_alloc");
 
         // Generate the canary
-        auto *canary = prevCanaryAlloca == nullptr ?
+        auto *canary = pacga == nullptr ?
                        Builder.CreateCall(getPacgaDecl(F), mod, "pga") :
                        Builder.CreateCall(getPacdaDecl(F, prevCanaryAlloca),
-                                          { prevCanaryAlloca, mod }, "pda");
+                                          { prevCanaryAlloca, pacga }, "pda");
+        if (pacga == nullptr)
+          pacga = canary;
 
         // Store canary
         Builder.CreateAlignedStore(canary, arr_alloc, 8);
@@ -176,17 +179,18 @@ bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned funcID,
         if (mod == nullptr)
           mod = Builder.CreateCall(getEpiModDecl(F));
 
+        auto *pacga = Builder.CreateCall(getPacgaDecl(F), mod, "ega");
+
         auto *rI = dyn_cast<llvm::ReturnInst>(&I);
         auto *canary_val = Builder.CreateLoad(canary);
 
         while (canary_val->getType() != Type::getInt64Ty(C)) {
           auto autda = Builder.CreateCall(getAutdaDecl(F, canary_val),
-                                          { canary_val, mod }, "eda");
+                                          { canary_val, pacga }, "eda");
 
           canary_val = Builder.CreateLoad(autda);
         }
 
-        auto *pacga = Builder.CreateCall(getPacgaDecl(F), mod, "ega");
         auto *cmp = Builder.CreateICmp(llvm::CmpInst::ICMP_EQ,
                                        canary_val, pacga, "cmp");
 
