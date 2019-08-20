@@ -18,6 +18,10 @@ static cl::opt<bool> UseDummyInstructions("cauth-dummy", cl::Hidden,
                                           cl::desc("Use dummy instructions and XOR instead of PA"),
                                           cl::init(false));
 
+static cl::opt<bool> EnableDummyPa("aarch64-dummy-pa", cl::Hidden,
+                                   cl::desc("Convert PAauth instrs to non-PA analogues"),
+                                   cl::init(false));
+
 static cl::opt<CAuthType> CAuthTypeOpt(
     "cauth", cl::init(CAuthNone),
     cl::desc("CAuth mode to use"),
@@ -38,5 +42,5 @@ bool llvm::CAuth::useCAuth() {
 }
 
 bool llvm::CAuth::useDummy() {
-  return UseDummyInstructions;
+  return (UseDummyInstructions || EnableDummyPa);
 }
