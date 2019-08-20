@@ -92,6 +92,9 @@ bool CAuthCanaryPass::runOnFunction(Function &F) {
   ++TotalFunctionCounter;
   const unsigned funcID = ++m_funcID;
 
+  if (F.doesNotReturn())
+    return false; // Just quit since we don't do mid-func canary-checks yet
+
   F.addFnAttr("cauth-funcid", std::to_string(funcID));
 
   auto *canary = instrumentEntry(F, funcID);
@@ -103,7 +106,8 @@ bool CAuthCanaryPass::runOnFunction(Function &F) {
 
   const bool changed = instrumentReturn(F, funcID, canary);
 
-  assert(changed && "prologue instrumented but not the epilogue!?!");
+  assert(changed || F.doesNotReturn()
+                    && "prologue instrumented but not the epilogue!?!");
   return changed;
 }
 
