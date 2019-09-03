@@ -166,7 +166,6 @@ bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned funcID,
   bool changed = false;
   auto &C = F.getContext();
 
-  Value *mod = nullptr;
 
   for (auto &BB : F) {
     // Skip BBs added by cauth instrumentation
@@ -180,8 +179,7 @@ bool CAuthCanaryPass::instrumentReturn(Function &F, const unsigned funcID,
         IRBuilder<> Builder(&I);
 
         // Make sure we have a modifier
-        if (mod == nullptr)
-          mod = Builder.CreateCall(getEpiModDecl(F));
+        auto *mod = Builder.CreateCall(getEpiModDecl(F));
 
         auto *pacga = Builder.CreateCall(getPacgaDecl(F), mod, "ega");
 
