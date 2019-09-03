@@ -11,14 +11,14 @@
 
 ; CHECK-DAG:  [[MOD2:%[0-9]+]] = call i64 @llvm.cauth.epi.mod()
 ; CHECK-DAG:  [[CAN:%[0-9]+]] = load i64, i64* %cauth_alloc
-; CHECK:  %ega = call i64 @llvm.ca.pacga(i64 [[MOD2]])
+; CHECK-DAG:  %ega = call i64 @llvm.ca.pacga(i64 [[MOD2]])
 ; CHECK:  %cmp = icmp eq i64 [[CAN]], %ega
 ; CHECK:  br i1 %cmp, label %cauth.ret, label %cauth.fail
 ; CHECK: cauth.ret:
 ; CHECK:  ret void
 ; CHECK: cauth.fail:
-; CHECK:  %printfCall = call i32 (...) @printf([41 x i8]* @__canary_chk_fail)
-; CHECK:  call void @exit(i32 1)
+; CHECK:  @printf({{.*}}@__canary_chk_fail
+; CHECK:  call void @exit
 ; CHECK:  ret void
 define hidden void @simple() {
 entry:
