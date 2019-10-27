@@ -1,7 +1,8 @@
 #===----------------------------------------------------------------------===//
 #
 # Author: Zaheer Gauhar <zaheer.gauhar@pm.me>
-# *******Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/**********
+#         Hans Liljestrand <hans@liljestrand.dev>
+# ***Copyright: Secure Systems Group, Aalto University https://ssg.aalto.fi/***
 #
 # This file is distributed under the University of Illinois Open Source
 # License. See LICENSE.TXT for details.
