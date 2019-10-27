@@ -1,0 +1,135 @@
+#
+# Author: Hans Liljestrand <hans.liljestrand@aalto.fi>
+# Copyright: Secure Systems Group, Aalto University, https://ssg.aalto.fi
+#
+# This code is released under Apache 2.0 license
+#
+
+
+#######################################
+# Default generated values and target #
+#######################################
+
+BIN ?= $(shell basename $(shell pwd)).out
+SOURCES ?= $(wildcard *.c)
+
+default: $(BIN)
+
+# Locate our Makefile
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+MAKEFILE_DIR := $(MAKEFILE_DIR:/=)
+
+# Load potential Makefile.conf
+-include $(MAKEFILE_DIR)/Makefile.conf
+
+##############################################################
+# PATH CONFIGURATION                                         #
+# These can be overriden in Makefile.conf or on command line #
+##############################################################
+LLVM_PATH	?= $(MAKEFILE_DIR)/../../build/cauth
+GCC_BASE 	?= $(MAKEFILE_DIR)/../gcc
+SYSROOT 	?= $(MAKEFILE_DIR)/../sysroot
+OUTPUT_DIR	?= $(MAKEFILE_DIR)/build
+QEMU 		?=
+
+# Set some other default values
+NOCAUTH 	?= # Set to Yes to disable cauth
+O_LEVEL 	?= 2
+
+# Locate some binaryies based on above paths
+LLVM_LINKER = ${LLVM_PATH}/bin/llvm-link
+LLVM_DIS 	= ${LLVM_PATH}/bin/llvm-dis
+LLVM_CONFIG = ${LLVM_PATH}/bin/llvm-config
+CLANG 		= ${LLVM_PATH}/bin/clang
+CLANGPP 	= ${LLVM_PATH}/bin/clang++
+OPT 		= ${LLVM_PATH}/bin/opt
+LLC 		= ${LLVM_PATH}/bin/llc
+LLD 		= $(LLMV_PATH)/bin/ld.lld
+GCC 		= $(GCC_BASE)/bin/aarch64-linux-gnu-gcc
+OBJDUMP 	= $(GCC_BASE)/bin/aarch64-linux-gnu-objdump
+
+# Executables we will need to locate
+EXECUTABLES = $(CLANG) $(OPT) $(LLC) $(GCC) $(GCC_BASE) $(OBJDUMP)
+
+# This will check the executables when expanded
+CHECK_EXECUTABLES = $(foreach exec,$(EXECUTABLES),\
+        $(if $(shell ls $(exec)),$(exec),$(error "Cannot find $(exec)")))
+
+# CAuse CHECK_EXECUTABLES to expand and print config
+check: $(CHECK_EXECUTABLES)
+	#
+	# LLVM:          $(LLVM_PATH)
+	# GCC:           $(GCC_BASE)
+	# sysroot:       $(SYSROOT)
+	#
+	# Output:        $(OUTPUT_DIR)
+	#
+
+######################
+# Set compiler flags #
+######################
+
+# Flags for clang
+CFLAGS += --target=aarch64-gnu-linux -march=armv8.3-a
+CFLAGS += -I$(SYSROOT)/usr/include
+CFLAGS += -Wall -Wextra
+CFLAGS += -fPIC
+CFLAGS += -fvisibility=hidden
+CFLAGS += -fno-stack-protector
+
+# Flags for clang linker
+LDFLAGS += --sysroot=$(SYSROOT) -B$(GCC_BASE)
+
+LLC_FLAGS += -march=aarch64 -mattr=v8.3a
+
+ifdef O_LEVEL
+	CFLAGS 		+= -O$(O_LEVEL)
+	OPT_FLAGS 	+= -O$(O_LEVEL)
+	LLC_FLAGS 	+= -O=$(O_LEVEL)
+endif
+
+ifneq ($(NOCAUTH), Yes)
+	OPT_FLAGS 	+= -cauth-ir-arrays -cauth=arr
+	LLC_FLAGS 	+= -cauth-noir -cauth=arr
+	LDFLAGS   	+= -mllvm -cauth=arr
+endif
+
+######################################
+# Helper/common targets for Makefile #
+######################################
+
+print-%: ; @echo $* = $($*)
+
+$(BIN): $(SOURCES)
+	$(CLANG) $(CFLAGS) $(LDFLAGS) $^ -o $@ --static
+
+$(BIN:=.opt.ll): %.opt.ll : %.ll
+	$(OPT) $(OPT_FLAGS) -S < $< > $@
+
+$(BIN:=.ll): $(SOURCES)
+	$(CLANG) $(CFLAGS) -emit-llvm -S -c $^ -o $@
+
+$(BIN:=.s): %.s : %.opt.ll
+	$(LLC) $(LLC_FLAGS) $^ -o $@
+
+$(BIN:=.dis): %.dis: %
+	$(OBJDUMP) -d $^ > $@
+
+.PHONY: dis
+dis: $(BIN:=.ll) $(BIN:=.opt.ll) $(BIN:=.s) $(BIN:=.dis)
+
+.PHONY: run
+run: $(BIN) $(QEMU)
+	$(QEMU) -cpu max $^
+
+.PHONY: clean
+clean::
+	rm -rf ${CLEAN_FILES} $(BIN:=.ll) $(BIN:=.opt.ll) $(BIN:=.s) $(BIN:=.dis) $(BIN)
+
+.PHONY: mrproper
+mrproper:: clean
+	rm -rf ${MRPROPER_FILES}
+
+.PHONY: send2guest
+send2guest: ${BIN}
+	cp ${SEND_FILES} ${BIN} ${OUTPUT_DIR}
