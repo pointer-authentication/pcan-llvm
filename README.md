@@ -1,6 +1,6 @@
 # PCan
 
-This repository contains a fork of the LLVM compiler infrastructure that implements a prototype of PCan. PCan was presented at SysTEX '19 and included in the proceedings (link to be added).
+This repository contains a fork of the LLVM compiler infrastructure that implements a prototype of PCan. PCan was presented at SysTEX '19 ([link to paper](https://doi.org/10.1145/3342559.3365336)).
 
 ## Testing PCan
 
